@@ -1,342 +1,220 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Syarif Muhammad Alhaiza</title>
-    <!---------- BOOTSTRAP CSS ---------->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-      crossorigin="anonymous"
-    />
-    <!---------- BOOTSTRAP ICON ---------->
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-    />
-    <!---------- STYLE CSS ---------->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="assets/icons/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="assets/css/style.css" />
-    <!---------- AOS ANIMATION CSS ---------->
-    <link rel="stylesheet" href="https://unpkg.com/aos@next/dist/aos.css" />
+    <title>Syarif Muhammad Alhaiza</title>
   </head>
   <body>
-    <!---------- NAVBAR ---------->
-    <nav class="navbar navbar-expand-lg fixed-top text-uppercase">
-      <div class="container">
-        <a class="navbar-brand fw-bold" href="#">Alhaiza</a>
+    <!-- navbar start -->
+    <nav class="navbar navbar-expand-lg fixed-top shadow-sm">
+      <div class="container-lg">
+        <a class="navbar-brand fw-bold" href="index.html">Alhaiza</a>
         <button
           class="navbar-toggler"
           type="button"
           data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
+          data-bs-target="#navbarSupportedContent"
+          aria-controls="navbarSupportedContent"
           aria-expanded="false"
           aria-label="Toggle navigation"
         >
           <span class="navbar-toggler-icon"></span>
         </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav ms-auto">
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav mx-auto">
             <li class="nav-item">
-              <a href="#home" class="nav-link px-lg-4 rounded">Home</a>
+              <a class="nav-link" href="#about">About</a>
             </li>
             <li class="nav-item">
-              <a href="#services" class="nav-link px-lg-4 rounded" href="#"
-                >Services</a
-              >
+              <a class="nav-link" href="#services">Services</a>
             </li>
             <li class="nav-item">
-              <a href="#portofolio" class="nav-link px-lg-4 rounded" href="#"
-                >Portofolio</a
-              >
+              <a class="nav-link" href="#projects">Projects</a>
             </li>
             <li class="nav-item">
-              <a href="#contact" class="nav-link px-lg-4 rounded">Contact</a>
+              <a class="nav-link d-lg-none" href="#contact">Contact Me!</a>
             </li>
           </ul>
+          <a class="btn btn-outline-dark d-none d-lg-block" href="#contact"
+            >Contact Me!</a
+          >
         </div>
       </div>
     </nav>
-    <!---------- NAVBAR ---------->
+    <!-- navbar end -->
 
-    <!---------- MAIN SECTION ---------->
-    <section
-      class="main py-5"
-      data-aos="fade-right"
-      data-aos-duration="1000"
-      id="home"
-    >
-      <div class="container py-5">
-        <div class="row py-5">
-          <div class="col-md-12 py-5">
-            <h3>
-              <small>Hello, Im <br /></small>
-              Syarif Muhammad Alhaiza
-            </h3>
-            <h6 class="py-3">Informatics Student | Web Developer</h6>
-            <p>
-              I am a Informatics Student at Tanjungpura University, enthusiastic
-              about web development and seeking opportunities to apply my skills
-              in a professional setting. Committed to contributing positively to
-              projects and teams, I am actively seeking opportunities to grow
-              and learn in the field.
-            </p>
-            <button class="btn-1 mt-3 me-3">Download C.V.</button>
+    <!-- hero start -->
+    <section class="hero" id="hero">
+      <div class="container-lg">
+        <div class="row align-items-center">
+          <div class="col-sm-6">
+            <h1 class="display-2 fw-bold">Syarif Muhammad Alhaiza</h1>
+            <p class="display-6">Fullstack Web Developer</p>
+            <a class="btn btn-outline-dark btn-lg" href="#projects">Projects</a>
+          </div>
+          <div class="col-sm-6 text-center">
+            <img src="assets/img/hero/hero-img.jpg" alt="" class="img-fluid" />
           </div>
         </div>
       </div>
     </section>
-    <!---------- MAIN SECTION ---------->
+    <!-- hero end -->
 
-    <!---------- SERVICES SECTION ---------->
-    <section class="services py-5" id="services">
-      <div class="container py-5">
-        <h1 class="text-center pb-5">Services.</h1>
-        <div class="row pb-3" data-aos="fade-up" data-aos-duration="1000">
-          <div class="col-md-3 mb-3">
-            <div class="card text-center">
-              <div class="card-body">
-                <div class="circle">
-                  <span><i class="bi bi-laptop"></i></span>
-                </div>
-                <h4 class="fw-bold pb-2">Basic Web Development</h4>
-                <p>
-                  Building simple, functional websites using HTML, CSS, and
-                  JavaScript. I focus on creating clean, responsive layouts to
-                  provide a good user experience across devices. This service is
-                  perfect for personal blogs, portfolios, and small business
-                  sites.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-3 mb-3">
-            <div class="card text-center">
-              <div class="card-body">
-                <div class="circle">
-                  <span><i class="bi bi-phone"></i></span>
-                </div>
-                <h4 class="fw-bold pb-2">Responsive Design</h4>
-                <p>
-                  Ensuring websites look and function well on all devices. Using
-                  responsive design techniques, I make sure that your site
-                  automatically adapts to different screen sizes, providing a
-                  smooth experience for users on desktops, tablets, and
-                  smartphones.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-3 mb-3">
-            <div class="card text-center">
-              <div class="card-body">
-                <div class="circle">
-                  <span><i class="bi bi-ui-checks"></i></span>
-                </div>
-                <h4 class="fw-bold pb-2">UI Enhancements</h4>
-                <p>
-                  Improving user interfaces with small design adjustments and
-                  interactive elements. I work on enhancing navigation,
-                  adjusting color schemes, and adding buttons and icons to make
-                  websites more user-friendly and visually appealing.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-3 mb-3">
-            <div class="card text-center">
-              <div class="card-body">
-                <div class="circle">
-                  <span><i class="bi bi-tools"></i></span>
-                </div>
-                <h4 class="fw-bold pb-2">Website Maintenance & Updates</h4>
-                <p>
-                  Helping keep your website up-to-date and running smoothly. I
-                  offer assistance with minor updates, adding new content,
-                  fixing broken links, and ensuring all components are
-                  functioning as expected.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-3 mb-3">
-            <div class="card text-center">
-              <div class="card-body">
-                <div class="circle">
-                  <span><i class="bi bi-briefcase"></i></span>
-                </div>
-                <h4 class="fw-bold pb-2">Portfolio & Personal Sites</h4>
-                <p>
-                  Designing and developing personal portfolios and resume
-                  websites that showcase your work and achievements. I can
-                  create a simple, professional site to highlight your skills
-                  and experience, perfect for students, freelancers, and
-                  professionals.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-3 mb-3">
-            <div class="card text-center">
-              <div class="card-body">
-                <div class="circle">
-                  <span><i class="bi bi-bug"></i></span>
-                </div>
-                <h4 class="fw-bold pb-2">Bug Fixes & Troubleshooting</h4>
-                <p>
-                  Providing help with identifying and fixing common issues that
-                  may arise on a website. Whether it’s layout problems,
-                  navigation errors, or minor functionality bugs, I can
-                  troubleshoot and resolve small issues to improve your site's
-                  performance.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-3 mb-3">
-            <div class="card text-center">
-              <div class="card-body">
-                <div class="circle">
-                  <span><i class="bi bi-pencil-square"></i></span>
-                </div>
-                <h4 class="fw-bold pb-2">Simple CMS Setup</h4>
-                <p>
-                  Setting up websites on user-friendly content management
-                  systems like WordPress to make it easy for you to add and
-                  manage content without any coding. I can help with basic theme
-                  setup and guide you on how to use the platform.
-                </p>
-              </div>
-            </div>
-          </div>
-          <div class="col-md-3 mb-3">
-            <div class="card text-center">
-              <div class="card-body">
-                <div class="circle">
-                  <span><i class="bi bi-gear"></i></span>
-                </div>
-                <h4 class="fw-bold pb-2">
-                  Student Projects and Internship Collaboration
-                </h4>
-                <p>
-                  Open to collaborating on small projects or internships where I
-                  can gain practical experience and contribute to a team. I’m
-                  ready to assist with front-end or simple back-end tasks,
-                  gaining exposure to real-world development workflows.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-    <!---------- SERVICES SECTION ---------->
-
-    <!---------- PORTOFOLIO SECTION ---------->
-    <section class="portofolio" id="portofolio">
+    <!-- about start -->
+    <section class="about" id="about">
       <div class="container">
-        <h1 class="text-center pb-5">Portofolio</h1>
-        <div class="row" data-aos="zoom-in" data-aos-duration="1000">
-          <div class="col-md-4 col-12 mb-4">
-            <h6 class="text-center">Portofolio Website</h6>
-            <div class="item">
+        <h2 class="display-5 fw-bold">About Me</h2>
+        <p>
+          Hi! I’m Syarif Muhammad Alhaiza — a passionate full-stack web
+          developer who’s all about crafting digital tools that are easy to use,
+          professional, and effective.
+        </p>
+        <p>
+          I focus on both frontend and backend development using tools like Vue,
+          Tailwind, Bootstrap, and Laravel. My goal is always the same: to
+          create digital solutions that are not just functional, but easy to use
+          and maintain.
+        </p>
+      </div>
+    </section>
+    <!-- about end -->
+
+    <section class="services" id="services">
+      <div class="container">
+        <h2 class="display-5 fw-bold">Services</h2>
+        <div class="row">
+          <div class="col-lg col-sm-6 mb-3 d-flex">
+            <div class="card flex-fill">
+              <i class="bi bi-layers"></i>
+              <div class="card-body">
+                <h5 class="card-title fw-bold">Frontend Development</h5>
+                <p class="card-text">
+                  Design and build the part of a website or app that people
+                  interact with — like pages, buttons, and forms. I make sure
+                  everything looks clean, works well on all devices, and is easy
+                  to use.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg col-sm-6 mb-3 d-flex">
+            <div class="card flex-fill">
+              <i class="bi bi-hdd-network"></i>
+              <div class="card-body">
+                <h5 class="card-title fw-bold">Backend Development</h5>
+                <p class="card-text">
+                  Develop the part that handles the logic behind your website —
+                  processing data, handling logins, and making sure everything
+                  runs smoothly when someone uses it.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg col-sm-6 mb-3 d-flex">
+            <div class="card flex-fill">
+              <i class="bi bi-database-check"></i>
+              <div class="card-body">
+                <h5 class="card-title fw-bold">Database Management</h5>
+                <p class="card-text">
+                  Organize and manage the data your system needs — like user
+                  info, documents, or records — and make sure it's stored
+                  securely and can be accessed when needed.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- projects start -->
+    <section class="projects" id="projects">
+      <div class="container">
+        <h2 class="display-5 fw-bold">Projects</h2>
+        <div class="row">
+          <div class="col-lg col-sm-6 col-md-4 mt-4 d-flex">
+            <div class="card flex-fill">
               <img
-                src="assets/img/Portofolio-1.jpg"
-                class="img-fluid border"
-                alt=""
+                src="assets/img/projects/personal-website.jpg "
+                class="card-img-top"
+                alt="..."
               />
-            </div>
-          </div>
-          <div class="col-md-4 col-12 mb-4">
-            <h6 class="text-center">Inventory App</h6>
-            <div class="item">
-              <img src="assets/img/Portofolio-2.png" class="img-fluid" alt="" />
-            </div>
-          </div>
-          <div class="col-md-4 col-12 mb-4">
-            <h6 class="text-center">E-Course App</h6>
-            <div class="item">
-              <img src="assets/img/Portofolio-3.jpg" class="img-fluid" alt="" />
-            </div>
-          </div>
-          <div class="col-md-4 col-12 mb-4">
-            <h6 class="text-center">Whatsapp Bot + Gemini AI</h6>
-            <div class="item">
-              <img src="assets/img/Portofolio-4.png" class="img-fluid" alt="" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-    <!---------- PORTOFOLIO SECTION ---------->
-
-    <!---------- CONTACT SECTION ---------->
-    <section class="contact py-5" id="contact">
-      <div class="container py-5">
-        <h1 class="text-center">Contact Me</h1>
-        <div class="row py-5">
-          <div class="col-md-10 mx-auto">
-            <div class="row text-center">
-              <div class="col-md-3">
-                <div class="circle">
-                  <span><i class="bi bi-geo-alt-fill"></i></span>
-                </div>
-                <h5>Address</h5>
-                <p>Pontianak, West Kalimantan, Indonesia</p>
+              <div class="card-body">
+                <h5 class="card-title">Profile/Portofolio Website</h5>
+                <a href="#" class="btn btn-outline-dark">Read More</a>
               </div>
-              <div class="col-md-3">
-                <div class="circle"><i class="bi bi-envelope-at-fill"></i></div>
-                <h5>Email</h5>
-                <p>alqadrihaiza@gmail.com</p>
+            </div>
+          </div>
+          <div class="col-lg col-sm-6 col-md-4 mt-4 d-flex d-flex">
+            <div class="card flex-fill">
+              <img
+                src="assets/img/projects/inventory-app-qr-code.png"
+                class="card-img-top"
+                alt="..."
+              />
+              <div class="card-body">
+                <h5 class="card-title">Inventory App with QR Code</h5>
+                <a href="#" class="btn btn-outline-dark">Read More</a>
               </div>
-              <div class="col-md-3">
-                <div class="circle"><i class="bi bi-linkedin"></i></div>
-                <h5>LinkedIn</h5>
-                <p>
-                  <a
-                    class="text-decoration-none text-black"
-                    href="https://www.linkedin.com/in/alhaiza"
-                    >linkedin.com/in/alhaiza/</a
-                  >
-                </p>
-              </div>
-              <div class="col-md-3">
-                <div class="circle"><i class="bi bi-github"></i></div>
-                <h5>GitHub</h5>
-                <p>
-                  <a
-                    class="text-decoration-none text-black"
-                    href="https://github.com/Alhaiza"
-                    >github.com/Alhaiza</a
-                  >
-                </p>
+            </div>
+          </div>
+          <div class="col-lg col-sm-6 col-md-4 mt-4 d-flex d-flex">
+            <div class="card flex-fill">
+              <img
+                src="assets/img/projects/intern-management-app.jpg"
+                class="card-img-top"
+                alt="..."
+              />
+              <div class="card-body">
+                <h5 class="card-title">Intern Management App</h5>
+                <a href="#" class="btn btn-outline-dark">Read More</a>
               </div>
             </div>
           </div>
         </div>
       </div>
     </section>
-    <!---------- CONTACT SECTION ---------->
+    <!-- projects end -->
 
-    <!---------- FOOTER SECTION ---------->
-    <footer class="py-3 text-center">
-      <p>Copy Right 2024 - Syarif Muhammad Alhaiza</p>
+    <!-- contact start -->
+    <section class="contact" id="contact">
+      <div class="container">
+        <h2 class="display-5 fw-bold">Contact Me</h2>
+        <div class="row">
+          <div class="col-sm-6 mt-4">
+            <a href="">alqadrihaiza@gmail.com</a>
+          </div>
+          <div class="col-sm-6 mt-4">
+            <div class="social-media">
+              <a href="https://www.instagram.com/alhaiza_/">
+                <i class="bi bi-instagram"></i
+              ></a>
+              <a href="https://github.com/Alhaiza">
+                <i class="bi bi-github"></i
+              ></a>
+              <a href="https://www.linkedin.com/in/alhaiza/">
+                <i class="bi bi-linkedin"></i
+              ></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- contact end -->
+
+    <!-- footer start -->
+    <footer class="text-center p-3 bg-dark text-white">
+      <div>&copy; 2025 All Rights Reserved</div>
     </footer>
-    <!---------- FOOTER SECTION ---------->
+    <!-- footer end -->
 
-    <!---------- BOOTSTRAP JS ---------->
-    <script
-      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-      crossorigin="anonymous"
-    ></script>
-
-    <!---------- AOS ANIMATION JS ---------->
-    <script src="https://unpkg.com/aos@next/dist/aos.js"></script>
-    <script>
-      AOS.init();
-    </script>
+    <script src="assets/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/script.js"></script>
   </body>
 </html>
