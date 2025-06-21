@@ -96,6 +96,10 @@ section.projects .card {
   text-align: center;
 }
 
+section.projects p {
+  font-size: 1.2rem;
+}
+
 /* contact */
 section.contact .social-media a {
   padding: 0.5rem;
