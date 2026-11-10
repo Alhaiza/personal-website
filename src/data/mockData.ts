@@ -127,6 +127,7 @@ export const mockSiteContent: SiteContent = {
       issuer: "AWS Certified Developer",
       description: "Menunjukkan keahlian membangun dan men-deploy aplikasi di cloud.",
       credentialUrl: "https://example.com/verify/aws",
+      featured: true,
     },
     {
       id: "c2",
@@ -134,12 +135,14 @@ export const mockSiteContent: SiteContent = {
       issuer: "Meta Frontend Specialist",
       description: "Menunjukkan keahlian pengembangan antarmuka modern dengan React.",
       credentialUrl: "https://example.com/verify/meta",
+      featured: true,
     },
     {
       id: "c3",
       title: "Cert 3",
       issuer: "Google Cloud Associate",
       description: "Menunjukkan pemahaman layanan inti Google Cloud.",
+      featured: true,
     },
   ],
 

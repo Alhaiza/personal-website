@@ -73,6 +73,7 @@ service cloud.firestore {
     //   - description: string (optional, 0-2000 chars)
     //   - credentialUrl: string (optional, 0-1000 chars)
     //   - imageUrl: string (optional, 0-1000 chars)
+    //   - featured: bool (optional)
     //   - order: number (optional)
     //   - createdAt: timestamp (optional, immutable on update)
     //   - updatedAt: timestamp (optional)
@@ -219,12 +220,13 @@ service cloud.firestore {
 
     function isValidCertification(data) {
       return data.keys().hasAll(['title']) &&
-        data.keys().hasOnly(['title', 'issuer', 'description', 'credentialUrl', 'imageUrl', 'order', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['title', 'issuer', 'description', 'credentialUrl', 'imageUrl', 'featured', 'order', 'createdAt', 'updatedAt']) &&
         isValidString(data.title, 1, 200) &&
         isValidOptionalString(data, 'issuer', 0, 200) &&
         isValidOptionalString(data, 'description', 0, 2000) &&
         isValidOptionalString(data, 'credentialUrl', 0, 1000) &&
         isValidOptionalString(data, 'imageUrl', 0, 1000) &&
+        isValidOptionalBool(data, 'featured') &&
         isValidOptionalNumber(data, 'order') &&
         isValidOptionalTimestamp(data, 'createdAt') &&
         isValidOptionalTimestamp(data, 'updatedAt');

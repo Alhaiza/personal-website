@@ -26,6 +26,7 @@ export interface CertificationItem {
   description?: string;
   credentialUrl?: string; // tautan verifikasi kredensial
   imageUrl?: string; // thumbnail sertifikat
+  featured?: boolean; // true = tampil di sidebar Certifications pada Home (dibatasi limit)
 }
 
 // Satu posisi pada timeline pengalaman kerja

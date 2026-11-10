@@ -178,6 +178,7 @@ export const saveCertification = async (cert: CertificationItem): Promise<void> 
     description: cert.description || "",
     credentialUrl: cert.credentialUrl || "",
     imageUrl: cert.imageUrl || "",
+    featured: Boolean(cert.featured),
     updatedAt: serverTimestamp(),
   });
 };

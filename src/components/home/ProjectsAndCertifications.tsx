@@ -32,6 +32,10 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
   const featuredProjects = allProjects.filter((p) => p.featured);
   const displayProjects = featuredProjects.length > 0 ? featuredProjects : allProjects;
 
+  // Filter sertifikasi yang ditandai featured untuk sidebar Home, atau fallback ke semua sertifikasi
+  const featuredCerts = certifications.filter((c) => c.featured);
+  const displayCerts = featuredCerts.length > 0 ? featuredCerts : certifications;
+
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const handlePrev = () => {
@@ -176,7 +180,7 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
           </h2>
 
           <div className="space-y-4">
-            {certifications.map((cert) => (
+            {displayCerts.map((cert) => (
               <div
                 key={cert.id}
                 className="bg-white border-2 border-black p-5 text-center shadow-neo hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-neo-lg transition-all"

@@ -99,6 +99,11 @@ export const Dashboard: FC = () => {
   const [tagsInput, setTagsInput] = useState("React, TypeScript, Tailwind");
   const [uploadingProjectImage, setUploadingProjectImage] = useState(false);
 
+  // Batas maksimal sertifikasi unggulan (Featured Certifications di Home)
+  const CERT_FEATURED_LIMIT = 3;
+  const featuredCertsCount = content.certifications.filter((c) => c.featured).length;
+  const isCertFeaturedLimitReached = featuredCertsCount >= CERT_FEATURED_LIMIT;
+
   // State lokal tambah sertifikasi baru
   const [newCert, setNewCert] = useState<Omit<CertificationItem, "id">>({
     title: "",
@@ -106,6 +111,7 @@ export const Dashboard: FC = () => {
     description: "",
     credentialUrl: "",
     imageUrl: "",
+    featured: false,
   });
   const [uploadingCertImage, setUploadingCertImage] = useState(false);
 
@@ -257,6 +263,14 @@ export const Dashboard: FC = () => {
     }
     if (!newCert.title.trim()) return;
 
+    if (newCert.featured && isCertFeaturedLimitReached) {
+      toast.error(
+        `Batas maksimal sertifikasi featured (${CERT_FEATURED_LIMIT}) sudah tercapai! Hapus status featured dari sertifikasi lain terlebih dahulu.`,
+        "LIMIT FEATURED TERCAPAI"
+      );
+      return;
+    }
+
     try {
       const cert: CertificationItem = {
         id: crypto.randomUUID(),
@@ -272,9 +286,37 @@ export const Dashboard: FC = () => {
         description: "",
         credentialUrl: "",
         imageUrl: "",
+        featured: false,
       });
     } catch (err: unknown) {
       toast.error((err as Error).message || "Gagal menambahkan sertifikasi");
+    }
+  };
+
+  // Toggle Featured Sertifikasi
+  const handleToggleCertFeatured = (cert: CertificationItem) => {
+    const willBeFeatured = !cert.featured;
+
+    if (willBeFeatured && isCertFeaturedLimitReached) {
+      toast.error(
+        `Maksimal ${CERT_FEATURED_LIMIT} sertifikasi featured! Hilangkan status featured dari sertifikasi lain sebelum mencentang sertifikasi ini.`,
+        "LIMIT TERCAPAI"
+      );
+      return;
+    }
+
+    try {
+      const updated = content.certifications.map((c) =>
+        c.id === cert.id ? { ...c, featured: willBeFeatured } : c
+      );
+      updateContent({ certifications: updated });
+      if (willBeFeatured) {
+        toast.success(`Sertifikasi "${cert.title}" ditandai sebagai Featured (${content.certifications.filter(c => c.id === cert.id || c.featured).length}/${CERT_FEATURED_LIMIT})!`);
+      } else {
+        toast.info(`Status Featured untuk sertifikasi "${cert.title}" dinonaktifkan.`);
+      }
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Gagal mengubah status featured sertifikasi");
     }
   };
 
@@ -829,6 +871,51 @@ export const Dashboard: FC = () => {
                   onUploadingChange={setUploadingCertImage}
                   placeholder="https://... atau /sertifikat.jpg"
                 />
+
+                <label
+                  htmlFor="cert-featured"
+                  className={`flex items-start gap-3 p-3.5 border-2 border-black shadow-neo-sm select-none transition-colors ${
+                    isCertFeaturedLimitReached && !newCert.featured
+                      ? "bg-neutral-100 opacity-60 cursor-not-allowed"
+                      : "bg-neutral-50 hover:bg-[#bef264]/20 cursor-pointer"
+                  }`}
+                >
+                  <input
+                    id="cert-featured"
+                    type="checkbox"
+                    checked={newCert.featured}
+                    disabled={isCertFeaturedLimitReached && !newCert.featured}
+                    onChange={(e) => {
+                      if (e.target.checked && isCertFeaturedLimitReached) {
+                        toast.error(
+                          `Batas maksimal sertifikasi featured (${CERT_FEATURED_LIMIT}) sudah tercapai!`,
+                          "LIMIT PENUH"
+                        );
+                        return;
+                      }
+                      setNewCert({ ...newCert, featured: e.target.checked });
+                    }}
+                    className="w-5 h-5 accent-black cursor-pointer disabled:cursor-not-allowed mt-0.5"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black uppercase tracking-wider">
+                        FEATURED CERTIFICATION (TAMPILKAN DI HOME)
+                      </span>
+                      <span className={`text-[10px] font-mono px-2 py-0.5 border border-black font-black uppercase ${
+                        isCertFeaturedLimitReached ? "bg-[#fb7185] text-black" : "bg-[#bef264] text-black"
+                      }`}>
+                        {featuredCertsCount}/{CERT_FEATURED_LIMIT} TERPAKAI
+                      </span>
+                    </div>
+                    <p className="font-mono text-[11px] text-neutral-600 mt-0.5">
+                      {isCertFeaturedLimitReached && !newCert.featured
+                        ? `Limit maksimal ${CERT_FEATURED_LIMIT} sertifikasi unggulan telah tercapai. Hapus status featured pada sertifikasi lain sebelum memilih sertifikasi ini.`
+                        : `Sertifikasi dengan centang featured akan diprioritaskan tampil di halaman Home (maksimal ${CERT_FEATURED_LIMIT} sertifikasi).`}
+                    </p>
+                  </div>
+                </label>
+
                 <NeoButton
                   type="submit"
                   variant="lime"
@@ -840,43 +927,86 @@ export const Dashboard: FC = () => {
                 </NeoButton>
               </form>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {content.certifications.map((c) => (
-                  <div key={c.id} className="bg-[#bef264] border-2 border-black p-4 shadow-neo flex flex-col justify-between">
-                    <div>
-                      {c.imageUrl && (
-                        <img
-                          src={c.imageUrl}
-                          alt={`Thumbnail ${c.title}`}
-                          className="w-full aspect-video object-cover border-2 border-black mb-3 bg-white"
-                          loading="lazy"
-                        />
-                      )}
-                      <h4 className="font-black text-lg text-black">{c.title}</h4>
-                      <p className="font-mono text-xs text-neutral-800">{c.issuer}</p>
-                      {c.credentialUrl && (
-                        <a
-                          href={c.credentialUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 mt-2 text-[11px] font-mono underline font-bold"
-                        >
-                          <span>VERIFY LINK</span>
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
-                      )}
-                    </div>
-                    <div className="mt-4 pt-3 border-t border-black flex justify-end">
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteCert(c.id, c.title, c.imageUrl)}
-                        className="px-2.5 py-1 bg-white border border-black text-xs font-bold shadow-neo-sm hover:bg-neutral-100 cursor-pointer"
-                      >
-                        DELETE
-                      </button>
-                    </div>
+              {/* Daftar Sertifikasi */}
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                  <h3 className="text-sm font-black uppercase tracking-wider">
+                    EXISTING CERTIFICATIONS ({content.certifications.length})
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono font-bold uppercase text-neutral-600">
+                      FEATURED DI HOME:
+                    </span>
+                    <span className={`text-xs font-mono font-black px-2 py-0.5 border border-black ${
+                      isCertFeaturedLimitReached ? "bg-[#fb7185] text-black" : "bg-[#bef264] text-black"
+                    }`}>
+                      {featuredCertsCount} / {CERT_FEATURED_LIMIT} MAKSIMAL
+                    </span>
                   </div>
-                ))}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {content.certifications.map((c) => (
+                    <div key={c.id} className="bg-[#bef264] border-2 border-black p-4 shadow-neo flex flex-col justify-between">
+                      <div>
+                        {c.imageUrl && (
+                          <img
+                            src={c.imageUrl}
+                            alt={`Thumbnail ${c.title}`}
+                            className="w-full aspect-video object-cover border-2 border-black mb-3 bg-white"
+                            loading="lazy"
+                          />
+                        )}
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="font-black text-lg text-black">{c.title}</h4>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCertFeatured(c)}
+                            disabled={isCertFeaturedLimitReached && !c.featured}
+                            title={
+                              isCertFeaturedLimitReached && !c.featured
+                                ? `Limit featured (${CERT_FEATURED_LIMIT}) sudah tercapai!`
+                                : c.featured
+                                ? "Hapus dari Featured"
+                                : "Jadikan Featured"
+                            }
+                            className={`shrink-0 px-2 py-1 border border-black text-[10px] font-black uppercase flex items-center gap-1 transition-all ${
+                              c.featured
+                                ? "bg-black text-white hover:bg-neutral-800 cursor-pointer shadow-neo-sm"
+                                : isCertFeaturedLimitReached
+                                ? "bg-neutral-200 text-neutral-400 opacity-50 cursor-not-allowed border-neutral-400"
+                                : "bg-white text-black hover:bg-black hover:text-white cursor-pointer shadow-neo-sm"
+                            }`}
+                          >
+                            <Star className={`w-3 h-3 ${c.featured ? "fill-white text-white" : "text-black"}`} />
+                            <span>{c.featured ? "FEATURED" : "+ FEATURE"}</span>
+                          </button>
+                        </div>
+                        <p className="font-mono text-xs text-neutral-800">{c.issuer}</p>
+                        {c.credentialUrl && (
+                          <a
+                            href={c.credentialUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 mt-2 text-[11px] font-mono underline font-bold"
+                          >
+                            <span>VERIFY LINK</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-black flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteCert(c.id, c.title, c.imageUrl)}
+                          className="px-2.5 py-1 bg-white border border-black text-xs font-bold shadow-neo-sm hover:bg-neutral-100 cursor-pointer"
+                        >
+                          DELETE
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
