@@ -1,4 +1,4 @@
-import { useState, type FC, type FormEvent } from "react";
+import { useState, useEffect, type FC, type FormEvent } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Lock, ArrowRight, AlertCircle, Sparkles } from "lucide-react";
 import { useAuth } from "../context/authContext";
@@ -11,27 +11,35 @@ import { NeoButton } from "../components/common/NeoButton";
  * - Hidden entry point (not linked anywhere on public navbar or footer).
  * - Matches the high-contrast Neo-Brutalist design language.
  * - Authenticates against Firebase Auth with email & password.
+ * - Auto-redirects to `/dashboard` if user is already authenticated.
  * - Handles authentication errors gracefully with alert boxes.
- * - Redirects seamlessly to `/dashboard` upon successful login.
+ * - Redirects seamlessly to destination upon successful login.
  */
 
 export const Login: FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const { login } = useAuth();
+  const { user, loading: authLoading, login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   // Redirect destination after successful login (default to /dashboard)
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
 
+  // Jika user sudah login, otomatis lempar langsung ke dashboard (tidak menampilkan form login lagi)
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate(from, { replace: true });
+    }
+  }, [user, authLoading, navigate, from]);
+
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
+    setSubmitting(true);
 
     try {
       await login(email, password);
@@ -44,9 +52,23 @@ export const Login: FC = () => {
         setError("An unexpected authentication error occurred.");
       }
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
+
+  // Jangan render form jika Firebase masih memverifikasi sesi atau user sudah login
+  if (authLoading || user) {
+    return (
+      <div className="min-h-screen bg-[#bef264] flex flex-col items-center justify-center p-6 text-black select-none font-mono">
+        <div className="border-2 border-black bg-white p-8 shadow-neo-lg flex flex-col items-center gap-4 text-center">
+          <div className="w-10 h-10 border-4 border-black border-t-[#6366f1] rounded-full animate-spin" />
+          <p className="text-sm font-black uppercase tracking-wider">
+            {user ? "REDIRECTING TO DASHBOARD..." : "VERIFYING SESSION..."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#6366f1] bg-grid-pattern p-6 flex flex-col items-center justify-center text-black font-sans selection:bg-[#bef264]">
@@ -114,9 +136,9 @@ export const Login: FC = () => {
             variant="lime"
             size="lg"
             className="w-full mt-4"
-            disabled={loading}
+            disabled={submitting}
           >
-            <span>{loading ? "AUTHENTICATING..." : "ACCESS DASHBOARD"}</span>
+            <span>{submitting ? "AUTHENTICATING..." : "ACCESS DASHBOARD"}</span>
             <ArrowRight className="w-4 h-4 stroke-[3]" />
           </NeoButton>
         </form>
