@@ -81,6 +81,9 @@ export const Dashboard: FC = () => {
   // State lokal formulir profil
   const [profileForm, setProfileForm] = useState<UserProfile>(content.profile);
 
+  // =========================================================================
+  // CHEATSHEET & PEMBELAJARAN: LIMIT KUOTA FEATURED PROJECTS
+  // =========================================================================
   // Batas maksimal proyek unggulan (Featured Projects di Carousel Home)
   const PROJECT_FEATURED_LIMIT = 4;
   const featuredProjectsCount = content.projects.filter((p) => p.featured).length;
@@ -99,6 +102,9 @@ export const Dashboard: FC = () => {
   const [tagsInput, setTagsInput] = useState("React, TypeScript, Tailwind");
   const [uploadingProjectImage, setUploadingProjectImage] = useState(false);
 
+  // =========================================================================
+  // CHEATSHEET & PEMBELAJARAN: LIMIT KUOTA FEATURED CERTIFICATIONS
+  // =========================================================================
   // Batas maksimal sertifikasi unggulan (Featured Certifications di Home)
   const CERT_FEATURED_LIMIT = 3;
   const featuredCertsCount = content.certifications.filter((c) => c.featured).length;
@@ -157,6 +163,9 @@ export const Dashboard: FC = () => {
     }
   };
 
+  // =========================================================================
+  // CHEATSHEET & PEMBELAJARAN: FORM HANDLER & FIRESTORE SYNC PROYEK
+  // =========================================================================
   // Tambah Proyek ke Firestore
   const handleAddProject = (e: FormEvent) => {
     e.preventDefault();
@@ -166,6 +175,7 @@ export const Dashboard: FC = () => {
     }
     if (!newProject.title.trim()) return;
 
+    // VALIDASI KUOTA LIMIT FEATURED PROYEK
     if (newProject.featured && isProjectFeaturedLimitReached) {
       toast.error(
         `Batas maksimal proyek featured (${PROJECT_FEATURED_LIMIT}) sudah tercapai! Hapus status featured dari proyek lain terlebih dahulu.`,
@@ -204,10 +214,13 @@ export const Dashboard: FC = () => {
     }
   };
 
-  // Toggle Featured Proyek
+  // =========================================================================
+  // CHEATSHEET & PEMBELAJARAN: TOGGLE STATUS FEATURED PROYEK
+  // =========================================================================
   const handleToggleProjectFeatured = (proj: ProjectItem) => {
     const willBeFeatured = !proj.featured;
 
+    // Tolak jika ingin menambah featured tapi kuota sudah penuh
     if (willBeFeatured && isProjectFeaturedLimitReached) {
       toast.error(
         `Maksimal ${PROJECT_FEATURED_LIMIT} proyek featured! Hilangkan status featured dari proyek lain sebelum mencentang proyek ini.`,
@@ -231,7 +244,9 @@ export const Dashboard: FC = () => {
     }
   };
 
-  // Hapus Proyek dari Firestore menggunakan Custom Neo-Brutalism Modal
+  // =========================================================================
+  // CHEATSHEET & PEMBELAJARAN: PENGHAPUSAN AMAN DOKUMEN & BERKAS PROYEK
+  // =========================================================================
   const handleDeleteProject = (id: string, title?: string, imageUrl?: string) => {
     setConfirmModal({
       isOpen: true,
@@ -240,11 +255,13 @@ export const Dashboard: FC = () => {
       onConfirm: async () => {
         closeConfirmModal();
         try {
+          // 1. Hapus dokumen langsung dari koleksi 'projects' Cloud Firestore
           await deleteProject(id);
-          // Hapus berkas gambar fisik lokal jika disimpan di /uploads/
+          // 2. Hapus berkas gambar fisik lokal jika disimpan di /uploads/
           if (imageUrl) {
             await deleteFileLocally(imageUrl);
           }
+          // 3. Perbarui state lokal dan cache
           updateContent({ projects: content.projects.filter((p) => p.id !== id) });
           toast.success("Proyek dan berkas medianya berhasil dihapus.");
         } catch (err: unknown) {
@@ -254,7 +271,9 @@ export const Dashboard: FC = () => {
     });
   };
 
-  // Tambah Sertifikasi ke Firestore
+  // =========================================================================
+  // CHEATSHEET & PEMBELAJARAN: FORM HANDLER & FIRESTORE SYNC SERTIFIKASI
+  // =========================================================================
   const handleAddCert = (e: FormEvent) => {
     e.preventDefault();
     if (uploadingCertImage) {
@@ -263,6 +282,7 @@ export const Dashboard: FC = () => {
     }
     if (!newCert.title.trim()) return;
 
+    // VALIDASI KUOTA LIMIT FEATURED SERTIFIKASI
     if (newCert.featured && isCertFeaturedLimitReached) {
       toast.error(
         `Batas maksimal sertifikasi featured (${CERT_FEATURED_LIMIT}) sudah tercapai! Hapus status featured dari sertifikasi lain terlebih dahulu.`,
@@ -293,10 +313,13 @@ export const Dashboard: FC = () => {
     }
   };
 
-  // Toggle Featured Sertifikasi
+  // =========================================================================
+  // CHEATSHEET & PEMBELAJARAN: TOGGLE STATUS FEATURED SERTIFIKASI
+  // =========================================================================
   const handleToggleCertFeatured = (cert: CertificationItem) => {
     const willBeFeatured = !cert.featured;
 
+    // Tolak jika ingin menambah featured tapi kuota sudah penuh
     if (willBeFeatured && isCertFeaturedLimitReached) {
       toast.error(
         `Maksimal ${CERT_FEATURED_LIMIT} sertifikasi featured! Hilangkan status featured dari sertifikasi lain sebelum mencentang sertifikasi ini.`,
@@ -320,7 +343,9 @@ export const Dashboard: FC = () => {
     }
   };
 
-  // Hapus Sertifikasi dari Firestore menggunakan Custom Neo-Brutalism Modal
+  // =========================================================================
+  // CHEATSHEET & PEMBELAJARAN: PENGHAPUSAN DOKUMEN & BERKAS SERTIFIKASI
+  // =========================================================================
   const handleDeleteCert = (id: string, title?: string, imageUrl?: string) => {
     setConfirmModal({
       isOpen: true,
@@ -329,11 +354,13 @@ export const Dashboard: FC = () => {
       onConfirm: async () => {
         closeConfirmModal();
         try {
+          // 1. Hapus dokumen fisik langsung dari koleksi 'certifications' Cloud Firestore
           await deleteCertification(id);
-          // Hapus berkas gambar fisik lokal jika disimpan di /uploads/
+          // 2. Hapus berkas gambar fisik lokal jika disimpan di /uploads/
           if (imageUrl) {
             await deleteFileLocally(imageUrl);
           }
+          // 3. Perbarui state lokal dan cache
           updateContent({ certifications: content.certifications.filter((c) => c.id !== id) });
           toast.success("Sertifikasi dan berkas medianya berhasil dihapus.");
         } catch (err: unknown) {

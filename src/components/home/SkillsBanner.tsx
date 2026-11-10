@@ -6,7 +6,16 @@ import type { SkillItem } from "../../types";
 /**
  * Komponen SkillsBanner Dinamis
  * 
- * Mengambil daftar skill secara dinamis dari `SiteContentContext` (atau props).
+ * CHEATSHEET & MEDIA PEMBELAJARAN:
+ * 1. PRIORITAS FEATURED DENGAN FALLBACK CERDAS:
+ *    - Secara otomatis menyaring skill yang ditandai `featured: true` (`allSkills.filter(s => s.featured)`).
+ *    - Jika belum ada skill yang di-featured, komponen menggunakan fallback ke seluruh daftar skill (`allSkills`).
+ * 2. RENDERING RAW SVG DINAMIS:
+ *    - Menggunakan atribut `dangerouslySetInnerHTML={{ __html: skill.svgCode }}` dengan styling Tailwind
+ *      `[&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current [&>svg]:stroke-current` agar SVG mewarisi warna teks
+ *      dan ukuran kontainer secara proporsional.
+ * 3. FALLBACK INISIAL NEO-BRUTALISME:
+ *    - Jika kode SVG tidak tersedia, menampilkan 2 huruf pertama dari nama teknologi (`skill.name.slice(0, 2)`).
  */
 
 interface SkillsBannerProps {

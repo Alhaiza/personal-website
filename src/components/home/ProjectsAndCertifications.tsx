@@ -7,12 +7,15 @@ import type { ProjectItem, CertificationItem } from "../../types";
 /**
  * Komponen ProjectsAndCertifications Dinamis
  * 
- * Perbaikan Masalah Lapisan Visual:
- * - Menghilangkan ilustrasi cuaca hardcoded "24°C".
- * - Mengambil proyek bertanda `featured === true` dari data dinamis context.
- * - Menggunakan `currentProject.imageUrl` asli dengan fallback visual jika belum ada gambar.
- * - Menampilkan tautan `projectUrl` jika tersedia.
- * - Menampilkan sertifikasi dinamis dengan `credentialUrl`.
+ * CHEATSHEET & MEDIA PEMBELAJARAN:
+ * 1. FILTERING FEATURED DENGAN FALLBACK OTOMATIS:
+ *    - Proyek unggulan: `featuredProjects = allProjects.filter((p) => p.featured)`. Fallback ke `allProjects`.
+ *    - Sertifikasi unggulan: `featuredCerts = certifications.filter((c) => c.featured)`. Fallback ke `certifications`.
+ * 2. CAROUSEL NEO-BRUTALISME TANPA DEPENDENSI EKSTERNAL:
+ *    - Menggunakan state `currentIndex` dengan operator modulo/wrap-around untuk tombol Prev dan Next.
+ *    - Dilengkapi pagination dots interaktif untuk melompat langsung ke slide tertentu.
+ * 3. BADGE VERIFIKASI KREDENSIAL:
+ *    - Merender tombol tautan eksternal ke kredensial resmi jika `credentialUrl` disediakan admin.
  */
 
 interface ProjectsAndCertificationsProps {
