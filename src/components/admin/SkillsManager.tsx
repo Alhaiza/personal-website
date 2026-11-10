@@ -3,6 +3,7 @@ import { ArrowUp, ArrowDown, Plus, Trash2, Upload, Code2, CheckCircle2, Star } f
 import { useSiteContent } from "../../context/siteContentContext";
 import { useToast } from "../common/toastContext";
 import { ConfirmModal } from "../common/ConfirmModal";
+import { deleteSkill } from "../../services/firestoreService";
 import type { SkillItem } from "../../types";
 
 /**
@@ -159,13 +160,14 @@ export const SkillsManager: FC = () => {
   };
 
   const handleConfirmDelete = async () => {
+    const { skillId, skillName } = confirmModal;
+    setConfirmModal({ isOpen: false, skillId: "", skillName: "" });
     try {
-      await updateContent({ skills: skills.filter((s) => s.id !== confirmModal.skillId) });
-      toast.success(`Skill "${confirmModal.skillName}" berhasil dihapus.`);
+      await deleteSkill(skillId);
+      await updateContent({ skills: skills.filter((s) => s.id !== skillId) });
+      toast.success(`Skill "${skillName}" berhasil dihapus dari Cloud Firestore.`);
     } catch (err: unknown) {
       toast.error((err as Error).message || "Gagal menghapus skill dari Firestore", "SERVER ERROR");
-    } finally {
-      setConfirmModal({ isOpen: false, skillId: "", skillName: "" });
     }
   };
 

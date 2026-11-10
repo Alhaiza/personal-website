@@ -36,10 +36,10 @@ const readCachedContent = (): SiteContent => {
       settings: { ...mockSiteContent.settings, ...parsed.settings },
       profile: { ...mockSiteContent.profile, ...parsed.profile },
       contact: { ...mockSiteContent.contact, ...parsed.contact },
-      skills: Array.isArray(parsed.skills) && parsed.skills.length > 0 ? parsed.skills : mockSiteContent.skills,
-      projects: Array.isArray(parsed.projects) && parsed.projects.length > 0 ? parsed.projects : mockSiteContent.projects,
-      certifications: Array.isArray(parsed.certifications) && parsed.certifications.length > 0 ? parsed.certifications : mockSiteContent.certifications,
-      experiences: Array.isArray(parsed.experiences) && parsed.experiences.length > 0 ? parsed.experiences : mockSiteContent.experiences,
+      skills: Array.isArray(parsed.skills) ? parsed.skills : mockSiteContent.skills,
+      projects: Array.isArray(parsed.projects) ? parsed.projects : mockSiteContent.projects,
+      certifications: Array.isArray(parsed.certifications) ? parsed.certifications : mockSiteContent.certifications,
+      experiences: Array.isArray(parsed.experiences) ? parsed.experiences : mockSiteContent.experiences,
     };
   } catch {
     return mockSiteContent;
