@@ -111,6 +111,7 @@ export const saveSkill = async (skill: SkillItem): Promise<void> => {
     name: skill.name,
     iconType: skill.iconType || "custom",
     svgCode: skill.svgCode || "",
+    featured: Boolean(skill.featured),
     updatedAt: serverTimestamp(),
   });
 };

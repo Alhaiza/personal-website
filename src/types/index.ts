@@ -45,6 +45,7 @@ export interface SkillItem {
   name: string;
   iconType?: SkillIconType;
   svgCode: string; // Wajib: markup SVG (<svg ...>...</svg>)
+  featured?: boolean; // true = tampil di banner skills pada Home (dibatasi maksimal limit)
 }
 
 // Profil yang tampil di Hero. Urutan skill/proyek mengikuti urutan array-nya.

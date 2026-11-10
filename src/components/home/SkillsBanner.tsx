@@ -15,7 +15,10 @@ interface SkillsBannerProps {
 
 export const SkillsBanner: FC<SkillsBannerProps> = ({ skills: propSkills }) => {
   const { content } = useSiteContent();
-  const skills = propSkills || content.skills;
+  const allSkills = propSkills || content.skills;
+  // Prioritaskan skill yang ditandai featured, atau fallback ke allSkills jika belum ada yang di-featured
+  const featuredSkills = allSkills.filter((s) => s.featured);
+  const skills = featuredSkills.length > 0 ? featuredSkills : allSkills;
 
   return (
     <section id="skills" className="w-full bg-white border-b-2 border-black flex flex-col sm:flex-row items-stretch">

@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type FC, type FormEvent } from "react";
-import { ArrowUp, ArrowDown, Plus, Trash2, Upload, Code2, CheckCircle2 } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Trash2, Upload, Code2, CheckCircle2, Star } from "lucide-react";
 import { useSiteContent } from "../../context/siteContentContext";
 import { useToast } from "../common/toastContext";
 import { ConfirmModal } from "../common/ConfirmModal";
@@ -11,9 +11,13 @@ import type { SkillItem } from "../../types";
  * Mengelola daftar skill dengan 2 Opsi Input Ikon (Wajib SVG):
  * 1. OPSI A: Copas Raw SVG Code (<svg ...>...</svg>)
  * 2. OPSI B: Upload Berkas .svg (Wajib .svg, otomatis dibaca ke SVG)
+ *
+ * Mendukung status FEATURED dengan pembatasan kuota maksimal (FEATURED_LIMIT).
  */
 
 type SvgInputMode = "paste" | "upload";
+
+const FEATURED_LIMIT = 6;
 
 const inputClass =
   "w-full border-2 border-black p-3 font-mono text-xs focus:bg-neutral-50 focus:outline-none shadow-neo-sm";
@@ -27,6 +31,11 @@ export const SkillsManager: FC = () => {
   const [inputMode, setInputMode] = useState<SvgInputMode>("upload");
   const [svgCode, setSvgCode] = useState("");
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [featured, setFeatured] = useState(false);
+
+  // Hitung jumlah skill yang sedang di-featured
+  const featuredCount = skills.filter((s) => s.featured).length;
+  const isLimitReached = featuredCount >= FEATURED_LIMIT;
 
   // State untuk Custom Neo-Brutalism Confirm Modal
   const [confirmModal, setConfirmModal] = useState<{
@@ -103,6 +112,14 @@ export const SkillsManager: FC = () => {
       return;
     }
 
+    if (featured && isLimitReached) {
+      toast.error(
+        `Batas maksimal skill featured (${FEATURED_LIMIT}) sudah tercapai! Hapus centang featured pada skill lain terlebih dahulu.`,
+        "LIMIT FEATURED TERCAPAI"
+      );
+      return;
+    }
+
     setSaving(true);
     try {
       const newSkill: SkillItem = {
@@ -110,12 +127,14 @@ export const SkillsManager: FC = () => {
         name: name.trim(),
         iconType: "custom",
         svgCode: cleanSvg,
+        featured,
       };
 
       await updateContent({ skills: [...skills, newSkill] });
       setName("");
       setSvgCode("");
       setUploadedFileName(null);
+      setFeatured(false);
       toast.success(`Skill "${newSkill.name}" berhasil disimpan ke Cloud Firestore!`);
     } catch (err: unknown) {
       const errorMsg = (err as Error)?.message || "Terjadi kesalahan saat menyimpan data ke Firestore.";
@@ -160,6 +179,33 @@ export const SkillsManager: FC = () => {
       toast.info("Urutan keahlian diperbarui.", "URUTAN DIUBAH");
     } catch (err: unknown) {
       toast.error((err as Error).message || "Gagal mengubah urutan", "SERVER ERROR");
+    }
+  };
+
+  const handleToggleFeatured = async (skill: SkillItem) => {
+    const willBeFeatured = !skill.featured;
+
+    // Jika ingin mencentang dan kuota sudah penuh, tolak
+    if (willBeFeatured && isLimitReached) {
+      toast.error(
+        `Maksimal ${FEATURED_LIMIT} skill featured! Hilangkan status featured dari skill lain sebelum mencentang skill ini.`,
+        "LIMIT TERCAPAI"
+      );
+      return;
+    }
+
+    try {
+      const updated = skills.map((s) =>
+        s.id === skill.id ? { ...s, featured: willBeFeatured } : s
+      );
+      await updateContent({ skills: updated });
+      if (willBeFeatured) {
+        toast.success(`Skill "${skill.name}" ditandai sebagai Featured (${skills.filter(s => s.id === skill.id || s.featured).length}/${FEATURED_LIMIT})!`);
+      } else {
+        toast.info(`Status Featured untuk "${skill.name}" dinonaktifkan.`);
+      }
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Gagal memperbarui status featured", "SERVER ERROR");
     }
   };
 
@@ -294,7 +340,14 @@ export const SkillsManager: FC = () => {
               )}
             </div>
             <div className="flex-1">
-              <div className="text-xs font-black uppercase">{name || "NAMA SKILL"}</div>
+              <div className="text-xs font-black uppercase flex items-center gap-2">
+                <span>{name || "NAMA SKILL"}</span>
+                {featured && (
+                  <span className="px-1.5 py-0.5 bg-[#bef264] border border-black text-[9px] font-black uppercase">
+                    FEATURED
+                  </span>
+                )}
+              </div>
               <div className="text-[10px] font-mono flex items-center gap-1 text-neutral-600 mt-0.5">
                 {svgCode && svgCode.includes("<svg") ? (
                   <span className="text-emerald-700 font-bold flex items-center gap-1">
@@ -306,6 +359,51 @@ export const SkillsManager: FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Opsi Featured Skill dengan Batasan Limit */}
+          <label
+            htmlFor="skill-featured"
+            className={`flex items-start gap-3 p-3.5 border-2 border-black shadow-neo-sm select-none transition-colors ${
+              isLimitReached && !featured
+                ? "bg-neutral-100 opacity-60 cursor-not-allowed"
+                : "bg-neutral-50 hover:bg-[#bef264]/20 cursor-pointer"
+            }`}
+          >
+            <input
+              id="skill-featured"
+              type="checkbox"
+              checked={featured}
+              disabled={isLimitReached && !featured}
+              onChange={(e) => {
+                if (e.target.checked && isLimitReached) {
+                  toast.error(
+                    `Batas maksimal featured (${FEATURED_LIMIT}) sudah tercapai!`,
+                    "LIMIT PENUH"
+                  );
+                  return;
+                }
+                setFeatured(e.target.checked);
+              }}
+              className="w-5 h-5 accent-black cursor-pointer disabled:cursor-not-allowed mt-0.5"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-wider">
+                  FEATURED SKILL (TAMPILKAN DI BANNER HOME)
+                </span>
+                <span className={`text-[10px] font-mono px-2 py-0.5 border border-black font-black uppercase ${
+                  isLimitReached ? "bg-[#fb7185] text-black" : "bg-[#bef264] text-black"
+                }`}>
+                  {featuredCount}/{FEATURED_LIMIT} TERPAKAI
+                </span>
+              </div>
+              <p className="font-mono text-[11px] text-neutral-600 mt-0.5">
+                {isLimitReached && !featured
+                  ? `Limit maksimal ${FEATURED_LIMIT} featured skill telah tercapai. Hapus featured pada skill lain jika ingin menandai skill baru ini.`
+                  : `Skill bertanda featured akan menjadi prioritas utama tampil di Banner Home (maksimal ${FEATURED_LIMIT} skill).`}
+              </p>
+            </div>
+          </label>
         </div>
 
         {/* Tombol Submit Tambah Skill */}
@@ -321,9 +419,21 @@ export const SkillsManager: FC = () => {
 
       {/* Daftar kartu skill yang sudah ada */}
       <div>
-        <h3 className="text-sm font-black uppercase tracking-wider mb-4">
-          EXISTING SKILLS ({skills.length})
-        </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+          <h3 className="text-sm font-black uppercase tracking-wider">
+            EXISTING SKILLS ({skills.length})
+          </h3>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono font-bold uppercase text-neutral-600">
+              FEATURED DI BANNER:
+            </span>
+            <span className={`text-xs font-mono font-black px-2 py-0.5 border border-black ${
+              isLimitReached ? "bg-[#fb7185] text-black" : "bg-[#bef264] text-black"
+            }`}>
+              {featuredCount} / {FEATURED_LIMIT} MAKSIMAL
+            </span>
+          </div>
+        </div>
 
         {skills.length === 0 ? (
           <p className="font-mono text-xs text-neutral-600 font-bold uppercase bg-white border-2 border-black p-6 shadow-neo">
@@ -334,12 +444,12 @@ export const SkillsManager: FC = () => {
             {skills.map((skill, index) => (
               <li key={skill.id} className="bg-white border-2 border-black p-4 shadow-neo flex flex-col justify-between gap-3">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="w-7 h-7 bg-[#bef264] border-2 border-black flex items-center justify-center font-mono text-xs font-black">
+                  <span className="w-7 h-7 bg-[#bef264] border-2 border-black flex items-center justify-center font-mono text-xs font-black shrink-0">
                     {index + 1}
                   </span>
                   
                   {/* Preview Icon */}
-                  <div className="w-8 h-8 bg-neutral-100 border border-black flex items-center justify-center p-1 text-black">
+                  <div className="w-8 h-8 bg-neutral-100 border border-black flex items-center justify-center p-1 text-black shrink-0">
                     {skill.svgCode ? (
                       <div
                         className="w-6 h-6 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full [&>svg]:fill-current [&>svg]:stroke-current"
@@ -350,7 +460,33 @@ export const SkillsManager: FC = () => {
                     )}
                   </div>
 
-                  <h4 className="flex-1 font-black text-sm uppercase text-black truncate">{skill.name}</h4>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-black text-sm uppercase text-black truncate">{skill.name}</h4>
+                  </div>
+
+                  {/* Tombol Toggle Featured Per Item */}
+                  <button
+                    type="button"
+                    onClick={() => handleToggleFeatured(skill)}
+                    disabled={isLimitReached && !skill.featured}
+                    title={
+                      isLimitReached && !skill.featured
+                        ? `Limit featured (${FEATURED_LIMIT}) sudah tercapai!`
+                        : skill.featured
+                        ? "Hapus dari Featured"
+                        : "Jadikan Featured"
+                    }
+                    className={`shrink-0 px-2 py-1 border border-black text-[10px] font-black uppercase flex items-center gap-1 transition-all ${
+                      skill.featured
+                        ? "bg-[#bef264] text-black hover:bg-neutral-200"
+                        : isLimitReached
+                        ? "bg-neutral-100 text-neutral-400 opacity-50 cursor-not-allowed border-neutral-300"
+                        : "bg-white text-neutral-600 hover:bg-[#bef264] hover:text-black cursor-pointer shadow-neo-sm"
+                    }`}
+                  >
+                    <Star className={`w-3 h-3 ${skill.featured ? "fill-black" : ""}`} />
+                    <span>{skill.featured ? "FEATURED" : "+ FEATURE"}</span>
+                  </button>
                 </div>
 
                 <div className="flex items-center justify-between pt-3 border-t-2 border-dashed border-neutral-300">
