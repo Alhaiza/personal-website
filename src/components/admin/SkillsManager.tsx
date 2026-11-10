@@ -9,11 +9,20 @@ import type { SkillItem } from "../../types";
 /**
  * Komponen SkillsManager (tab `/dashboard/skills`)
  *
- * Mengelola daftar skill dengan 2 Opsi Input Ikon (Wajib SVG):
- * 1. OPSI A: Copas Raw SVG Code (<svg ...>...</svg>)
- * 2. OPSI B: Upload Berkas .svg (Wajib .svg, otomatis dibaca ke SVG)
- *
- * Mendukung status FEATURED dengan pembatasan kuota maksimal (FEATURED_LIMIT).
+ * CHEATSHEET & MEDIA PEMBELAJARAN PENGEMBANGAN FITUR SKILLS:
+ * 1. DUA OPSI INPUT IKON (WAJIB FORMAT SVG):
+ *    - Opsi A (Paste/Copas): Pengguna menyalin markup mentah `<svg>...</svg>`. Cocok untuk ikon dari SimpleIcons / Lucide / BoxIcons.
+ *    - Opsi B (Upload File): Menggunakan `FileReader` (`readAsText`) di sisi browser (klien) untuk mengekstrak string XML SVG,
+ *      sehingga tidak perlu mengunggah berkas fisik biner ke bucket storage (menghemat kuota Firebase Storage).
+ * 2. FITUR FEATURED DENGAN LIMIT KETAT (FEATURED_LIMIT = 6):
+ *    - Membatasi kuota skill yang berhak tampil di banner halaman utama (Home) sesuai jumlah kolom grid (6 kolom).
+ *    - Terdapat indikator real-time kuota ({featuredCount}/{FEATURED_LIMIT}) serta validasi anti double-check.
+ * 3. ARSITEKTUR INTEGRASI CLOUD FIRESTORE:
+ *    - Create/Update: Memanggil `updateContent({ skills: [...] })` yang memicu `saveSkill` ke Firestore.
+ *    - Delete: WAJIB memanggil `deleteSkill(id)` secara langsung agar dokumen pada koleksi Firestore terhapus tuntas,
+ *      bukan hanya memfilter array di state lokal/cache.
+ * 4. FEEDBACK LENGKAP NEO-BRUTALISME:
+ *    - Menangani validasi ukuran berkas (<200KB), deteksi tag SVG, handling offline/network error, hingga status permission-denied.
  */
 
 type SvgInputMode = "paste" | "upload";
@@ -51,12 +60,15 @@ export const SkillsManager: FC = () => {
 
   const [saving, setSaving] = useState(false);
 
+  // =========================================================================
+  // CHEATSHEET 1: FILE READER UNTUK EKSTRAKSI MARKUP SVG DARI FILE LOKAL
+  // =========================================================================
   // Handler saat admin memilih/upload file .svg dari laptop (Opsi 2)
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validasi ketat: Wajib format SVG
+    // VALIDASI KETAT 1: Format wajib berekstensi .svg atau MIME image/svg+xml
     const isSvg = file.name.toLowerCase().endsWith(".svg") || file.type === "image/svg+xml";
     if (!isSvg) {
       toast.error("Format berkas ditolak! Anda WAJIB mengunggah file berekstensi .svg", "GAGAL VALIDASI");
@@ -64,12 +76,14 @@ export const SkillsManager: FC = () => {
       return;
     }
 
+    // VALIDASI KETAT 2: Ukuran berkas maksimal 200 KB agar hemat storage & bandwidth
     if (file.size > 200 * 1024) {
       toast.error("Ukuran berkas SVG terlalu besar (maksimal 200 KB).", "UKURAN DITOLAK");
       e.target.value = "";
       return;
     }
 
+    // TEKNIK: Membaca teks XML SVG di browser tanpa upload berkas fisik ke cloud
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result as string;
@@ -78,7 +92,7 @@ export const SkillsManager: FC = () => {
         setUploadedFileName(file.name);
         toast.success(`Berkas SVG "${file.name}" berhasil diunggah!`);
 
-        // Otomatis isi nama teknologi jika masih kosong
+        // Otomatis isi nama teknologi dari nama berkas jika input nama masih kosong
         if (!name.trim()) {
           const autoName = file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ");
           setName(autoName.toUpperCase());
@@ -95,6 +109,9 @@ export const SkillsManager: FC = () => {
     reader.readAsText(file);
   };
 
+  // =========================================================================
+  // CHEATSHEET 2: PENAMBAHAN SKILL BARU KE CLOUD FIRESTORE
+  // =========================================================================
   const handleAdd = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -113,6 +130,7 @@ export const SkillsManager: FC = () => {
       return;
     }
 
+    // VALIDASI KUOTA LIMIT: Mencegah featured melebihi batas (FEATURED_LIMIT = 6)
     if (featured && isLimitReached) {
       toast.error(
         `Batas maksimal skill featured (${FEATURED_LIMIT}) sudah tercapai! Hapus centang featured pada skill lain terlebih dahulu.`,
@@ -138,6 +156,7 @@ export const SkillsManager: FC = () => {
       setFeatured(false);
       toast.success(`Skill "${newSkill.name}" berhasil disimpan ke Cloud Firestore!`);
     } catch (err: unknown) {
+      // FEEDBACK ERROR KOMPREHENSIF: Membedakan Permission Denied, Network, dan Server Error
       const errorMsg = (err as Error)?.message || "Terjadi kesalahan saat menyimpan data ke Firestore.";
       if (errorMsg.includes("permission-denied") || errorMsg.includes("insufficient permissions")) {
         toast.error("Izin ditolak oleh Firestore Security Rules. Pastikan Anda telah login sebagai admin.", "PERMISSION DENIED");
@@ -151,6 +170,9 @@ export const SkillsManager: FC = () => {
     }
   };
 
+  // =========================================================================
+  // CHEATSHEET 3: DIALOG KONFIRMASI HAPUS (NEO-BRUTALISM MODAL)
+  // =========================================================================
   const promptDelete = (id: string, skillName: string) => {
     setConfirmModal({
       isOpen: true,
@@ -159,11 +181,16 @@ export const SkillsManager: FC = () => {
     });
   };
 
+  // =========================================================================
+  // CHEATSHEET 4: EKSEKUSI PENGHAPUSAN LANGSUNG DARI DOKUMEN FIRESTORE
+  // =========================================================================
   const handleConfirmDelete = async () => {
     const { skillId, skillName } = confirmModal;
     setConfirmModal({ isOpen: false, skillId: "", skillName: "" });
     try {
+      // WAJIB: Hapus dokumen langsung dari koleksi 'skills' di Firestore
       await deleteSkill(skillId);
+      // Sinkronkan state lokal dan update cache
       await updateContent({ skills: skills.filter((s) => s.id !== skillId) });
       toast.success(`Skill "${skillName}" berhasil dihapus dari Cloud Firestore.`);
     } catch (err: unknown) {
@@ -171,6 +198,9 @@ export const SkillsManager: FC = () => {
     }
   };
 
+  // =========================================================================
+  // CHEATSHEET 5: RE-ORDERING ITEM (SWAP ATAS/BAWAH DALAM ARRAY)
+  // =========================================================================
   const handleMove = async (index: number, direction: -1 | 1) => {
     const target = index + direction;
     if (target < 0 || target >= skills.length) return;
@@ -184,6 +214,9 @@ export const SkillsManager: FC = () => {
     }
   };
 
+  // =========================================================================
+  // CHEATSHEET 6: TOGGLE FEATURED DENGAN STRICT LIMIT VALIDATION
+  // =========================================================================
   const handleToggleFeatured = async (skill: SkillItem) => {
     const willBeFeatured = !skill.featured;
 
