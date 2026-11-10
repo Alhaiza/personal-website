@@ -44,7 +44,8 @@ service cloud.firestore {
     // Document ID: {docId} (auto-id or custom id)
     // Fields:
     //   - name: string (required, 1-100 chars)
-    //   - iconType: string (required, valid icon name: react, typescript, nodejs, tailwind, mongodb, git)
+    //   - iconType: string (required, valid icon name: react, typescript, nodejs, tailwind, mongodb, git, custom)
+    //   - svgCode: string (optional, 0-50000 chars)
     //   - order: number (optional)
     //   - createdAt: timestamp (optional)
     //   - updatedAt: timestamp (optional)
@@ -189,9 +190,10 @@ service cloud.firestore {
 
     function isValidSkill(data) {
       return data.keys().hasAll(['name', 'iconType']) &&
-        data.keys().hasOnly(['name', 'iconType', 'order', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['name', 'iconType', 'svgCode', 'order', 'createdAt', 'updatedAt']) &&
         isValidString(data.name, 1, 100) &&
-        data.iconType in ['react', 'typescript', 'nodejs', 'tailwind', 'mongodb', 'git'] &&
+        data.iconType in ['react', 'typescript', 'nodejs', 'tailwind', 'mongodb', 'git', 'custom'] &&
+        isValidOptionalString(data, 'svgCode', 0, 50000) &&
         isValidOptionalNumber(data, 'order') &&
         isValidOptionalTimestamp(data, 'createdAt') &&
         isValidOptionalTimestamp(data, 'updatedAt');
