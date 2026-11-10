@@ -20,13 +20,13 @@ export const Certifications: FC = () => {
       {/* Banner Judul */}
       <div className="bg-white border-2 border-black p-6 sm:p-8 shadow-neo mb-10">
         <div className="inline-flex items-center gap-1.5 bg-[#6366f1] text-white text-xs font-black uppercase tracking-wider px-3 py-1 border-2 border-black shadow-neo-sm mb-4 select-none">
-          <Award className="w-4 h-4" /> KREDENSIAL & SERTIFIKAT
+          <Award className="w-4 h-4" /> CREDENTIALS &amp; CERTIFICATES
         </div>
         <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-black">
-          SERTIFIKASI
+          CERTIFICATIONS
         </h1>
         <p className="font-mono text-xs sm:text-sm text-neutral-700 mt-2 max-w-xl">
-          Kompetensi teknis dan akreditasi standar industri yang telah diraih sepanjang karier.
+          Technical competence and industry-standard accreditations acquired throughout the career.
         </p>
       </div>
 
@@ -56,22 +56,22 @@ export const Certifications: FC = () => {
               </h2>
 
               <p className="font-mono text-xs font-bold text-neutral-600 uppercase mb-4">
-                {cert.issuer || "Kredensial Terverifikasi"}
+                {cert.issuer || "Verified Credential"}
               </p>
 
               <p className="font-mono text-xs text-neutral-500 leading-relaxed mb-6">
-                {cert.description || "Telah menunjukkan kompetensi dan penguasaan materi sesuai kurikulum standar industri."}
+                {cert.description || "Demonstrated competence and mastery of materials according to industry curriculum standards."}
               </p>
             </div>
 
             {cert.credentialUrl ? (
               <NeoButton size="sm" variant="lime" href={cert.credentialUrl}>
-                <span>VERIFIKASI BADGE</span>
+                <span>VERIFY BADGE</span>
                 <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
               </NeoButton>
             ) : (
               <span className="font-mono text-xs text-neutral-400 font-bold uppercase text-center block">
-                TERVERIFIKASI
+                VERIFIED
               </span>
             )}
           </div>
@@ -81,7 +81,7 @@ export const Certifications: FC = () => {
       {/* Tombol Kembali ke Beranda */}
       <div className="flex justify-center">
         <NeoButton to="/" variant="white" size="md">
-          <span>← KEMBALI KE BERANDA</span>
+          <span>← BACK TO HOME</span>
         </NeoButton>
       </div>
     </div>

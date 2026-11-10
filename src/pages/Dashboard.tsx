@@ -66,6 +66,8 @@ export const Dashboard: FC = () => {
     isOpen: boolean;
     title: string;
     message: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
     onConfirm: () => void;
   }>({
     isOpen: false,
@@ -140,7 +142,7 @@ export const Dashboard: FC = () => {
         if (isMounted) setMessages(data);
       })
       .catch((err: unknown) => {
-        toast.error((err as Error).message || "Gagal memuat pesan kontak", "GAGAL MEMUAT");
+        toast.error((err as Error).message || "Failed to load contact messages", "LOAD FAILED");
       });
     return () => {
       isMounted = false;
@@ -157,9 +159,9 @@ export const Dashboard: FC = () => {
     e.preventDefault();
     try {
       updateContent({ profile: profileForm });
-      toast.success("Profil berhasil diperbarui dan tersimpan di Cloud Firestore!");
+      toast.success("Profile updated successfully and synced with Cloud Firestore!");
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Gagal menyimpan data profil");
+      toast.error((err as Error).message || "Failed to save profile data");
     }
   };
 
@@ -170,7 +172,7 @@ export const Dashboard: FC = () => {
   const handleAddProject = (e: FormEvent) => {
     e.preventDefault();
     if (uploadingProjectImage) {
-      toast.error("Tunggu hingga gambar thumbnail selesai diunggah ke cloud.", "SEDANG MENGUNGGAH");
+      toast.error("Please wait until project thumbnail finishes uploading.", "UPLOADING");
       return;
     }
     if (!newProject.title.trim()) return;
@@ -178,8 +180,8 @@ export const Dashboard: FC = () => {
     // VALIDASI KUOTA LIMIT FEATURED PROYEK
     if (newProject.featured && isProjectFeaturedLimitReached) {
       toast.error(
-        `Batas maksimal proyek featured (${PROJECT_FEATURED_LIMIT}) sudah tercapai! Hapus status featured dari proyek lain terlebih dahulu.`,
-        "LIMIT FEATURED TERCAPAI"
+        `Maximum featured projects limit (${PROJECT_FEATURED_LIMIT}) reached! Please unfeature another project first.`,
+        "LIMIT REACHED"
       );
       return;
     }
@@ -197,7 +199,7 @@ export const Dashboard: FC = () => {
       };
 
       updateContent({ projects: [project, ...content.projects] });
-      toast.success("Proyek baru berhasil dibuat dan disimpan di Firestore!");
+      toast.success("New project created and saved to Firestore!");
 
       setNewProject({
         title: "",
@@ -210,7 +212,7 @@ export const Dashboard: FC = () => {
       });
       setTagsInput("");
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Gagal menambahkan proyek");
+      toast.error((err as Error).message || "Failed to add project");
     }
   };
 
@@ -223,8 +225,8 @@ export const Dashboard: FC = () => {
     // Tolak jika ingin menambah featured tapi kuota sudah penuh
     if (willBeFeatured && isProjectFeaturedLimitReached) {
       toast.error(
-        `Maksimal ${PROJECT_FEATURED_LIMIT} proyek featured! Hilangkan status featured dari proyek lain sebelum mencentang proyek ini.`,
-        "LIMIT TERCAPAI"
+        `Maximum ${PROJECT_FEATURED_LIMIT} featured projects allowed! Please unfeature another project before featuring this one.`,
+        "LIMIT REACHED"
       );
       return;
     }
@@ -235,12 +237,12 @@ export const Dashboard: FC = () => {
       );
       updateContent({ projects: updated });
       if (willBeFeatured) {
-        toast.success(`Proyek "${proj.title}" ditandai sebagai Featured (${content.projects.filter(p => p.id === proj.id || p.featured).length}/${PROJECT_FEATURED_LIMIT})!`);
+        toast.success(`Project "${proj.title}" marked as Featured (${content.projects.filter(p => p.id === proj.id || p.featured).length}/${PROJECT_FEATURED_LIMIT})!`);
       } else {
-        toast.info(`Status Featured untuk proyek "${proj.title}" dinonaktifkan.`);
+        toast.info(`Featured status for "${proj.title}" disabled.`);
       }
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Gagal mengubah status featured proyek");
+      toast.error((err as Error).message || "Failed to update project featured status");
     }
   };
 
@@ -250,8 +252,10 @@ export const Dashboard: FC = () => {
   const handleDeleteProject = (id: string, title?: string, imageUrl?: string) => {
     setConfirmModal({
       isOpen: true,
-      title: "HAPUS PROYEK?",
-      message: `Apakah Anda yakin ingin menghapus proyek "${title || "ini"}" dari portofolio dan Cloud Firestore? Data tidak dapat dikembalikan.`,
+      title: "DELETE PROJECT?",
+      message: `Are you sure you want to delete project "${title || "this project"}" from your portfolio and Cloud Firestore? This action cannot be undone.`,
+      confirmLabel: "YES, DELETE PROJECT",
+      cancelLabel: "CANCEL",
       onConfirm: async () => {
         closeConfirmModal();
         try {
@@ -263,9 +267,9 @@ export const Dashboard: FC = () => {
           }
           // 3. Perbarui state lokal dan cache
           updateContent({ projects: content.projects.filter((p) => p.id !== id) });
-          toast.success("Proyek dan berkas medianya berhasil dihapus.");
+          toast.success("Project and media files deleted successfully.");
         } catch (err: unknown) {
-          toast.error((err as Error).message || "Gagal menghapus proyek");
+          toast.error((err as Error).message || "Failed to delete project");
         }
       },
     });
@@ -277,7 +281,7 @@ export const Dashboard: FC = () => {
   const handleAddCert = (e: FormEvent) => {
     e.preventDefault();
     if (uploadingCertImage) {
-      toast.error("Tunggu hingga gambar sertifikat selesai diunggah ke cloud.", "SEDANG MENGUNGGAH");
+      toast.error("Please wait until certificate image finishes uploading.", "UPLOADING");
       return;
     }
     if (!newCert.title.trim()) return;
@@ -285,8 +289,8 @@ export const Dashboard: FC = () => {
     // VALIDASI KUOTA LIMIT FEATURED SERTIFIKASI
     if (newCert.featured && isCertFeaturedLimitReached) {
       toast.error(
-        `Batas maksimal sertifikasi featured (${CERT_FEATURED_LIMIT}) sudah tercapai! Hapus status featured dari sertifikasi lain terlebih dahulu.`,
-        "LIMIT FEATURED TERCAPAI"
+        `Maximum featured certificates limit (${CERT_FEATURED_LIMIT}) reached! Please unfeature another certificate first.`,
+        "LIMIT REACHED"
       );
       return;
     }
@@ -298,7 +302,7 @@ export const Dashboard: FC = () => {
       };
 
       updateContent({ certifications: [...content.certifications, cert] });
-      toast.success("Sertifikasi baru berhasil disimpan di Firestore!");
+      toast.success("New certification saved to Firestore!");
 
       setNewCert({
         title: "",
@@ -309,7 +313,7 @@ export const Dashboard: FC = () => {
         featured: false,
       });
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Gagal menambahkan sertifikasi");
+      toast.error((err as Error).message || "Failed to add certification");
     }
   };
 
@@ -322,8 +326,8 @@ export const Dashboard: FC = () => {
     // Tolak jika ingin menambah featured tapi kuota sudah penuh
     if (willBeFeatured && isCertFeaturedLimitReached) {
       toast.error(
-        `Maksimal ${CERT_FEATURED_LIMIT} sertifikasi featured! Hilangkan status featured dari sertifikasi lain sebelum mencentang sertifikasi ini.`,
-        "LIMIT TERCAPAI"
+        `Maximum ${CERT_FEATURED_LIMIT} featured certificates allowed! Please unfeature another certificate before featuring this one.`,
+        "LIMIT REACHED"
       );
       return;
     }
@@ -334,12 +338,12 @@ export const Dashboard: FC = () => {
       );
       updateContent({ certifications: updated });
       if (willBeFeatured) {
-        toast.success(`Sertifikasi "${cert.title}" ditandai sebagai Featured (${content.certifications.filter(c => c.id === cert.id || c.featured).length}/${CERT_FEATURED_LIMIT})!`);
+        toast.success(`Certification "${cert.title}" marked as Featured (${content.certifications.filter(c => c.id === cert.id || c.featured).length}/${CERT_FEATURED_LIMIT})!`);
       } else {
-        toast.info(`Status Featured untuk sertifikasi "${cert.title}" dinonaktifkan.`);
+        toast.info(`Featured status for "${cert.title}" disabled.`);
       }
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Gagal mengubah status featured sertifikasi");
+      toast.error((err as Error).message || "Failed to update certificate featured status");
     }
   };
 
@@ -349,8 +353,10 @@ export const Dashboard: FC = () => {
   const handleDeleteCert = (id: string, title?: string, imageUrl?: string) => {
     setConfirmModal({
       isOpen: true,
-      title: "HAPUS SERTIFIKASI?",
-      message: `Apakah Anda yakin ingin menghapus sertifikasi "${title || "ini"}" dari Cloud Firestore?`,
+      title: "DELETE CERTIFICATION?",
+      message: `Are you sure you want to delete certificate "${title || "this certificate"}" from Cloud Firestore?`,
+      confirmLabel: "YES, DELETE CERTIFICATE",
+      cancelLabel: "CANCEL",
       onConfirm: async () => {
         closeConfirmModal();
         try {
@@ -362,9 +368,9 @@ export const Dashboard: FC = () => {
           }
           // 3. Perbarui state lokal dan cache
           updateContent({ certifications: content.certifications.filter((c) => c.id !== id) });
-          toast.success("Sertifikasi dan berkas medianya berhasil dihapus.");
+          toast.success("Certification and media files deleted successfully.");
         } catch (err: unknown) {
-          toast.error((err as Error).message || "Gagal menghapus sertifikasi");
+          toast.error((err as Error).message || "Failed to delete certification");
         }
       },
     });
@@ -382,7 +388,7 @@ export const Dashboard: FC = () => {
       };
 
       updateContent({ experiences: [exp, ...content.experiences] });
-      toast.success("Pengalaman baru berhasil disimpan di Firestore!");
+      toast.success("New experience saved to Firestore!");
 
       setNewExp({
         role: "",
@@ -391,7 +397,7 @@ export const Dashboard: FC = () => {
         description: "",
       });
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Gagal menambahkan pengalaman");
+      toast.error((err as Error).message || "Failed to add experience");
     }
   };
 
@@ -399,16 +405,18 @@ export const Dashboard: FC = () => {
   const handleDeleteExp = (id: string, role?: string) => {
     setConfirmModal({
       isOpen: true,
-      title: "HAPUS PENGALAMAN?",
-      message: `Apakah Anda yakin ingin menghapus riwayat karier "${role || "posisi ini"}" dari Cloud Firestore?`,
+      title: "DELETE EXPERIENCE?",
+      message: `Are you sure you want to delete career timeline entry "${role || "this position"}" from Cloud Firestore?`,
+      confirmLabel: "YES, DELETE EXPERIENCE",
+      cancelLabel: "CANCEL",
       onConfirm: async () => {
         closeConfirmModal();
         try {
           await deleteExperience(id);
           updateContent({ experiences: content.experiences.filter((e) => e.id !== id) });
-          toast.success("Pengalaman berhasil dihapus dari Cloud Firestore.");
+          toast.success("Experience removed from Cloud Firestore.");
         } catch (err: unknown) {
-          toast.error((err as Error).message || "Gagal menghapus pengalaman");
+          toast.error((err as Error).message || "Failed to delete experience");
         }
       },
     });
@@ -419,16 +427,18 @@ export const Dashboard: FC = () => {
     if (!id) return;
     setConfirmModal({
       isOpen: true,
-      title: "HAPUS PESAN MASUK?",
-      message: `Hapus pesan dari "${sender || "pengunjung"}" dari database inbox?`,
+      title: "DELETE INQUIRY?",
+      message: `Delete message from "${sender || "visitor"}" from inbox database?`,
+      confirmLabel: "YES, DELETE INQUIRY",
+      cancelLabel: "CANCEL",
       onConfirm: async () => {
         closeConfirmModal();
         try {
           await deleteContactMessage(id);
           setMessages(messages.filter((m) => m.id !== id));
-          toast.success("Pesan berhasil dihapus dari database.");
+          toast.success("Message deleted from database.");
         } catch (err: unknown) {
-          toast.error((err as Error).message || "Gagal menghapus pesan");
+          toast.error((err as Error).message || "Failed to delete message");
         }
       },
     });
@@ -510,7 +520,7 @@ export const Dashboard: FC = () => {
                   EDIT PROFILE INFO
                 </h2>
                 <p className="font-mono text-xs text-neutral-600 mt-1">
-                  Atur sapaan nama, judul profesi di Hero, dan bio ringkas yang disimpan ke Cloud Firestore.
+                  Configure your display name, Hero professional title, and bio summary synced with Cloud Firestore.
                 </p>
               </div>
 
@@ -533,7 +543,7 @@ export const Dashboard: FC = () => {
                     PROFESSIONAL TITLE / HEADLINE (HERO BANNER)
                   </label>
                   <p className="font-mono text-[11px] text-neutral-500 mb-2">
-                    Teks ini tampil sebagai judul besar di Hero section (misal: "SOFTWARE DEVELOPER" atau "FULLSTACK ENGINEER").
+                    This text appears as the prominent headline in the Hero section (e.g. "SOFTWARE DEVELOPER" or "FULLSTACK ENGINEER").
                   </p>
                   <input
                     type="text"
@@ -576,13 +586,13 @@ export const Dashboard: FC = () => {
                 </div>
 
                 <p className="font-mono text-[11px] text-neutral-600 bg-neutral-100 border-2 border-dashed border-black p-3">
-                  Email, lokasi & tautan sosial media dikelola di menu <strong>CONTACT &amp; SOCIAL</strong>.
-                  Foto profil &amp; file resume dikelola di menu <strong>GENERAL SETTINGS</strong>.
+                  Email, location &amp; social links are managed in <strong>CONTACT &amp; SOCIAL</strong>.
+                  Avatar &amp; resume files are managed in <strong>GENERAL SETTINGS</strong>.
                 </p>
 
                 <NeoButton type="submit" variant="lime" size="md">
                   <Save className="w-4 h-4 stroke-[2.5]" />
-                  <span>SIMPAN KE FIRESTORE</span>
+                  <span>SAVE TO FIRESTORE</span>
                 </NeoButton>
               </form>
             </div>
@@ -596,7 +606,7 @@ export const Dashboard: FC = () => {
                   PROJECTS MANAGER
                 </h2>
                 <p className="font-mono text-xs text-neutral-600 mt-1">
-                  Kelola kartu portofolio proyek yang disinkronkan ke koleksi `projects` Cloud Firestore.
+                  Manage portfolio project cards synced with the `projects` Cloud Firestore collection.
                 </p>
               </div>
 
@@ -636,7 +646,7 @@ export const Dashboard: FC = () => {
 
                 <div>
                   <label className="block text-xs font-black uppercase tracking-wider mb-1">
-                    TAGS (PISAHKAN DENGAN KOMA)
+                    TAGS (COMMA SEPARATED)
                   </label>
                   <input
                     type="text"
@@ -650,14 +660,14 @@ export const Dashboard: FC = () => {
                 <AssetInput
                   id="project-image"
                   label="COVER IMAGE URL"
-                  hint="Thumbnail yang tampil di kartu proyek dan carousel Home"
+                  hint="Thumbnail displayed on project cards and Home carousel"
                   kind="image"
                   folder="projects"
                   required
                   value={newProject.imageUrl}
                   onChange={(value) => setNewProject({ ...newProject, imageUrl: value })}
                   onUploadingChange={setUploadingProjectImage}
-                  placeholder="https://... atau /gambar-proyek.jpg"
+                  placeholder="https://... or /project-image.jpg"
                 />
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -668,7 +678,7 @@ export const Dashboard: FC = () => {
                     <input
                       id="project-url"
                       type="url"
-                      placeholder="https://proyek-anda.com"
+                      placeholder="https://your-project.com"
                       value={newProject.projectUrl}
                       onChange={(e) => setNewProject({ ...newProject, projectUrl: e.target.value })}
                       className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm"
@@ -705,8 +715,8 @@ export const Dashboard: FC = () => {
                     onChange={(e) => {
                       if (e.target.checked && isProjectFeaturedLimitReached) {
                         toast.error(
-                          `Batas maksimal proyek featured (${PROJECT_FEATURED_LIMIT}) sudah tercapai!`,
-                          "LIMIT PENUH"
+                          `Maximum limit of featured projects (${PROJECT_FEATURED_LIMIT}) reached!`,
+                          "LIMIT REACHED"
                         );
                         return;
                       }
@@ -717,18 +727,18 @@ export const Dashboard: FC = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-black uppercase tracking-wider">
-                        FEATURED PROJECT (TAMPILKAN DI CAROUSEL HOME)
+                        FEATURED PROJECT (DISPLAY IN HOME CAROUSEL)
                       </span>
                       <span className={`text-[10px] font-mono px-2 py-0.5 border border-black font-black uppercase ${
                         isProjectFeaturedLimitReached ? "bg-[#fb7185] text-black" : "bg-[#bef264] text-black"
                       }`}>
-                        {featuredProjectsCount}/{PROJECT_FEATURED_LIMIT} TERPAKAI
+                        {featuredProjectsCount}/{PROJECT_FEATURED_LIMIT} USED
                       </span>
                     </div>
                     <p className="font-mono text-[11px] text-neutral-600 mt-0.5">
                       {isProjectFeaturedLimitReached && !newProject.featured
-                        ? `Limit maksimal ${PROJECT_FEATURED_LIMIT} proyek unggulan telah tercapai. Hapus status featured pada proyek lain sebelum memilih proyek ini.`
-                        : `Proyek dengan centang featured akan diprioritaskan tampil di carousel Home (maksimal ${PROJECT_FEATURED_LIMIT} proyek).`}
+                        ? `Maximum limit of ${PROJECT_FEATURED_LIMIT} featured projects reached. Unfeature another project before featuring this one.`
+                        : `Featured projects will be prioritized in the Home carousel (maximum ${PROJECT_FEATURED_LIMIT} projects).`}
                     </p>
                   </div>
                 </label>
@@ -741,7 +751,7 @@ export const Dashboard: FC = () => {
                   className={uploadingProjectImage ? "opacity-50 cursor-not-allowed" : ""}
                 >
                   <Plus className="w-4 h-4 stroke-[3]" />
-                  <span>{uploadingProjectImage ? "MENGUNGGAH GAMBAR..." : "TAMBAH PROYEK"}</span>
+                  <span>{uploadingProjectImage ? "UPLOADING IMAGE..." : "ADD PROJECT"}</span>
                 </NeoButton>
               </form>
 
@@ -753,12 +763,12 @@ export const Dashboard: FC = () => {
                   </h3>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-mono font-bold uppercase text-neutral-600">
-                      FEATURED DI CAROUSEL:
+                      FEATURED IN CAROUSEL:
                     </span>
                     <span className={`text-xs font-mono font-black px-2 py-0.5 border border-black ${
                       isProjectFeaturedLimitReached ? "bg-[#fb7185] text-black" : "bg-[#bef264] text-black"
                     }`}>
-                      {featuredProjectsCount} / {PROJECT_FEATURED_LIMIT} MAKSIMAL
+                      {featuredProjectsCount} / {PROJECT_FEATURED_LIMIT} MAX
                     </span>
                   </div>
                 </div>
@@ -783,10 +793,10 @@ export const Dashboard: FC = () => {
                             disabled={isProjectFeaturedLimitReached && !proj.featured}
                             title={
                               isProjectFeaturedLimitReached && !proj.featured
-                                ? `Limit featured (${PROJECT_FEATURED_LIMIT}) sudah tercapai!`
+                                ? `Featured limit (${PROJECT_FEATURED_LIMIT}) reached!`
                                 : proj.featured
-                                ? "Hapus dari Featured"
-                                : "Jadikan Featured"
+                                ? "Remove from Featured"
+                                : "Mark as Featured"
                             }
                             className={`shrink-0 px-2 py-1 border border-black text-[10px] font-black uppercase flex items-center gap-1 transition-all ${
                               proj.featured
@@ -834,7 +844,7 @@ export const Dashboard: FC = () => {
                   CERTIFICATIONS MANAGER
                 </h2>
                 <p className="font-mono text-xs text-neutral-600 mt-1">
-                  Kelola sertifikasi yang disinkronkan ke koleksi `certifications` Cloud Firestore.
+                  Manage certifications synced with the `certifications` Cloud Firestore collection.
                 </p>
               </div>
 
@@ -868,7 +878,7 @@ export const Dashboard: FC = () => {
                   <label className="block text-xs font-black uppercase tracking-wider mb-1">DESCRIPTION</label>
                   <textarea
                     rows={2}
-                    placeholder="Keterangan singkat materi atau kompetensi..."
+                    placeholder="Brief description of skills or competencies..."
                     value={newCert.description}
                     onChange={(e) => setNewCert({ ...newCert, description: e.target.value })}
                     className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm resize-none"
@@ -890,13 +900,13 @@ export const Dashboard: FC = () => {
                 <AssetInput
                   id="cert-image"
                   label="CERTIFICATE IMAGE URL"
-                  hint="Thumbnail sertifikat (opsional)"
+                  hint="Certificate thumbnail (optional)"
                   kind="image"
                   folder="certifications"
                   value={newCert.imageUrl || ""}
                   onChange={(value) => setNewCert({ ...newCert, imageUrl: value })}
                   onUploadingChange={setUploadingCertImage}
-                  placeholder="https://... atau /sertifikat.jpg"
+                  placeholder="https://... or /certificate.jpg"
                 />
 
                 <label
@@ -915,8 +925,8 @@ export const Dashboard: FC = () => {
                     onChange={(e) => {
                       if (e.target.checked && isCertFeaturedLimitReached) {
                         toast.error(
-                          `Batas maksimal sertifikasi featured (${CERT_FEATURED_LIMIT}) sudah tercapai!`,
-                          "LIMIT PENUH"
+                          `Maximum limit of featured certifications (${CERT_FEATURED_LIMIT}) reached!`,
+                          "LIMIT REACHED"
                         );
                         return;
                       }
@@ -927,18 +937,18 @@ export const Dashboard: FC = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-black uppercase tracking-wider">
-                        FEATURED CERTIFICATION (TAMPILKAN DI HOME)
+                        FEATURED CERTIFICATION (DISPLAY ON HOME)
                       </span>
                       <span className={`text-[10px] font-mono px-2 py-0.5 border border-black font-black uppercase ${
                         isCertFeaturedLimitReached ? "bg-[#fb7185] text-black" : "bg-[#bef264] text-black"
                       }`}>
-                        {featuredCertsCount}/{CERT_FEATURED_LIMIT} TERPAKAI
+                        {featuredCertsCount}/{CERT_FEATURED_LIMIT} USED
                       </span>
                     </div>
                     <p className="font-mono text-[11px] text-neutral-600 mt-0.5">
                       {isCertFeaturedLimitReached && !newCert.featured
-                        ? `Limit maksimal ${CERT_FEATURED_LIMIT} sertifikasi unggulan telah tercapai. Hapus status featured pada sertifikasi lain sebelum memilih sertifikasi ini.`
-                        : `Sertifikasi dengan centang featured akan diprioritaskan tampil di halaman Home (maksimal ${CERT_FEATURED_LIMIT} sertifikasi).`}
+                        ? `Maximum limit of ${CERT_FEATURED_LIMIT} featured certifications reached. Unfeature another certification before featuring this one.`
+                        : `Featured certifications will be prioritized on the Home page (maximum ${CERT_FEATURED_LIMIT} certifications).`}
                     </p>
                   </div>
                 </label>
@@ -950,7 +960,7 @@ export const Dashboard: FC = () => {
                   disabled={uploadingCertImage}
                   className={uploadingCertImage ? "opacity-50 cursor-not-allowed" : ""}
                 >
-                  <span>{uploadingCertImage ? "MENGUNGGAH GAMBAR..." : "TAMBAH SERTIFIKASI"}</span>
+                  <span>{uploadingCertImage ? "UPLOADING IMAGE..." : "ADD CERTIFICATION"}</span>
                 </NeoButton>
               </form>
 
@@ -962,12 +972,12 @@ export const Dashboard: FC = () => {
                   </h3>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-mono font-bold uppercase text-neutral-600">
-                      FEATURED DI HOME:
+                      FEATURED ON HOME:
                     </span>
                     <span className={`text-xs font-mono font-black px-2 py-0.5 border border-black ${
                       isCertFeaturedLimitReached ? "bg-[#fb7185] text-black" : "bg-[#bef264] text-black"
                     }`}>
-                      {featuredCertsCount} / {CERT_FEATURED_LIMIT} MAKSIMAL
+                      {featuredCertsCount} / {CERT_FEATURED_LIMIT} MAX
                     </span>
                   </div>
                 </div>
@@ -992,10 +1002,10 @@ export const Dashboard: FC = () => {
                             disabled={isCertFeaturedLimitReached && !c.featured}
                             title={
                               isCertFeaturedLimitReached && !c.featured
-                                ? `Limit featured (${CERT_FEATURED_LIMIT}) sudah tercapai!`
+                                ? `Featured limit (${CERT_FEATURED_LIMIT}) reached!`
                                 : c.featured
-                                ? "Hapus dari Featured"
-                                : "Jadikan Featured"
+                                ? "Remove from Featured"
+                                : "Mark as Featured"
                             }
                             className={`shrink-0 px-2 py-1 border border-black text-[10px] font-black uppercase flex items-center gap-1 transition-all ${
                               c.featured
@@ -1046,7 +1056,7 @@ export const Dashboard: FC = () => {
                   CAREER EXPERIENCES MANAGER
                 </h2>
                 <p className="font-mono text-xs text-neutral-600 mt-1">
-                  Kelola riwayat karier yang disinkronkan ke koleksi `experiences` Cloud Firestore.
+                  Manage career timeline synced with the `experiences` Cloud Firestore collection.
                 </p>
               </div>
 
@@ -1099,7 +1109,7 @@ export const Dashboard: FC = () => {
                   />
                 </div>
                 <NeoButton type="submit" variant="purple" size="sm">
-                  <span>TAMBAH RIWAYAT KARIER</span>
+                  <span>ADD CAREER TIMELINE</span>
                 </NeoButton>
               </form>
 
@@ -1141,7 +1151,7 @@ export const Dashboard: FC = () => {
                   INQUIRY INBOX ({messages.length})
                 </h2>
                 <p className="font-mono text-xs text-neutral-600 mt-1">
-                  Pesan yang dikirimkan pengunjung dari halaman publik /contact yang tersimpan di Cloud Firestore.
+                  Inquiries submitted by visitors from the public /contact page stored in Cloud Firestore.
                 </p>
               </div>
 
@@ -1149,7 +1159,7 @@ export const Dashboard: FC = () => {
                 <div className="bg-white border-2 border-black p-10 text-center shadow-neo">
                   <Mail className="w-10 h-10 mx-auto mb-3 text-neutral-400 stroke-1" />
                   <p className="font-mono text-xs text-neutral-600 font-bold uppercase">
-                    BELUM ADA PESAN MASUK.
+                    NO INCOMING MESSAGES YET.
                   </p>
                 </div>
               ) : (
@@ -1191,6 +1201,8 @@ export const Dashboard: FC = () => {
         isOpen={confirmModal.isOpen}
         title={confirmModal.title}
         message={confirmModal.message}
+        confirmLabel={confirmModal.confirmLabel}
+        cancelLabel={confirmModal.cancelLabel}
         onConfirm={confirmModal.onConfirm}
         onCancel={closeConfirmModal}
       />

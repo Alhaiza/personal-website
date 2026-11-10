@@ -47,14 +47,14 @@ const groups: NavGroup[] = [
     ],
   },
   {
-    title: "HALAMAN",
+    title: "PAGES",
     items: [
       { tab: "contact", label: "CONTACT & SOCIAL", icon: Link2 },
       { tab: "settings", label: "GENERAL SETTINGS", icon: Settings },
     ],
   },
   {
-    title: "KOTAK MASUK",
+    title: "INBOX",
     items: [{ tab: "messages", label: "MESSAGES", icon: Mail }],
   },
 ];

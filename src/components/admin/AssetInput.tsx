@@ -168,9 +168,9 @@ export const AssetInput: FC<AssetInputProps> = ({
     if (trimmed.startsWith("/uploads/")) {
       try {
         await deleteFileLocally(trimmed);
-        toast.success("Berkas fisik di folder public/uploads/ berhasil dihapus.");
+        toast.success("Physical file in public/uploads/ deleted successfully.");
       } catch (err) {
-        console.warn("Gagal menghapus berkas fisik:", err);
+        console.warn("Failed to delete physical file:", err);
       }
     }
 
@@ -197,7 +197,7 @@ export const AssetInput: FC<AssetInputProps> = ({
 
     // Batasan ukuran berkas di frontend (maks 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      toast.error("Ukuran berkas maksimal adalah 10MB.", "BERKAS TERLALU BESAR");
+      toast.error("Maximum file size is 10MB.", "FILE TOO LARGE");
       e.target.value = "";
       return;
     }
@@ -230,14 +230,14 @@ export const AssetInput: FC<AssetInputProps> = ({
       });
 
       toast.success(
-        `Berkas "${file.name}" berhasil disimpan ke public/uploads/!`,
-        "UNGGAH LOKAL BERHASIL"
+        `File "${file.name}" saved to public/uploads/!`,
+        "UPLOAD SUCCESS"
       );
     } catch (err: unknown) {
-      console.error("Gagal mengunggah berkas lokal:", err);
+      console.error("Failed to upload local file:", err);
       toast.error(
-        (err as Error).message || "Gagal mengunggah berkas ke direktori lokal",
-        "UNGGAH GAGAL"
+        (err as Error).message || "Failed to upload file to local storage",
+        "UPLOAD FAILED"
       );
       clearUploadStatus();
     } finally {
@@ -295,7 +295,7 @@ export const AssetInput: FC<AssetInputProps> = ({
               {isUploading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin stroke-[2.5]" />
-                  <span>MENGUNGGAH ({uploadProgress}%)</span>
+                  <span>UPLOADING ({uploadProgress}%)</span>
                 </>
               ) : (
                 <>
@@ -311,10 +311,10 @@ export const AssetInput: FC<AssetInputProps> = ({
                 type="button"
                 onClick={handleRemoveExistingFile}
                 className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#fb7185] hover:bg-[#f43f5e] border-2 border-black shadow-neo-sm text-xs font-black uppercase tracking-wider cursor-pointer transition-all duration-100 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-                title="Hapus berkas fisik yang terpasang"
+                title="Delete attached physical file"
               >
                 <Trash2 className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>HAPUS FILE</span>
+                <span>DELETE FILE</span>
               </button>
             )}
 
@@ -346,13 +346,13 @@ export const AssetInput: FC<AssetInputProps> = ({
               <div className="flex items-center gap-2 min-w-0">
                 <CheckCircle2 className="w-4 h-4 shrink-0 text-black stroke-[2.5]" />
                 <span className="truncate">
-                  <strong>{uploadStatus.fileName}</strong> tersimpan di <code>/uploads/</code>!
+                  <strong>{uploadStatus.fileName}</strong> saved in <code>/uploads/</code>!
                 </span>
               </div>
               <button
                 type="button"
                 onClick={clearUploadStatus}
-                aria-label="Tutup notifikasi berkas"
+                aria-label="Close file notification"
                 className="p-1 border border-black bg-white hover:bg-neutral-100 cursor-pointer shadow-neo-sm"
               >
                 <X className="w-3.5 h-3.5" />
@@ -364,7 +364,7 @@ export const AssetInput: FC<AssetInputProps> = ({
           {trimmed && !urlOk && !isUploading && (
             <p className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-red-700">
               <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-              <span>Gunakan URL lengkap (https://...) atau path lokal yang diawali "/".</span>
+              <span>Use complete URL (https://...) or local path starting with "/".</span>
             </p>
           )}
         </div>
@@ -374,7 +374,7 @@ export const AssetInput: FC<AssetInputProps> = ({
           className={`w-full sm:w-44 shrink-0 border-2 border-black bg-neutral-100 shadow-neo-sm overflow-hidden flex items-center justify-center relative ${
             kind === "image" ? (square ? "aspect-square" : "aspect-video") : "min-h-24"
           }`}
-          aria-label={`Pratinjau ${label}`}
+          aria-label={`Preview ${label}`}
         >
           {isUploading && (
             <div className="absolute inset-0 bg-black/40 backdrop-blur-xs flex flex-col items-center justify-center text-white p-2 text-center">
@@ -387,14 +387,14 @@ export const AssetInput: FC<AssetInputProps> = ({
             imageSrc ? (
               <img
                 src={imageSrc}
-                alt={`Pratinjau ${label}`}
+                alt={`Preview ${label}`}
                 onError={() => !uploadStatus?.localPreviewUrl && setFailedUrl(trimmed)}
                 className="w-full h-full object-cover"
               />
             ) : (
               <div className="p-3 text-center font-mono text-[11px] font-bold uppercase text-neutral-500">
                 <ImageIcon className="w-6 h-6 mx-auto mb-1 stroke-1" />
-                {trimmed && urlOk && imageBroken ? "GAMBAR RUSAK" : "BELUM ADA GAMBAR"}
+                {trimmed && urlOk && imageBroken ? "BROKEN IMAGE" : "NO IMAGE YET"}
               </div>
             )
           ) : (
@@ -411,11 +411,11 @@ export const AssetInput: FC<AssetInputProps> = ({
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 underline break-all text-black hover:text-neutral-600"
                 >
-                  <span>LIHAT BERKAS</span>
+                  <span>VIEW FILE</span>
                   <ExternalLink className="w-3 h-3 shrink-0" />
                 </a>
               ) : (
-                <span className="uppercase text-neutral-500">BELUM ADA BERKAS</span>
+                <span className="uppercase text-neutral-500">NO FILE YET</span>
               )}
             </div>
           )}
@@ -425,10 +425,10 @@ export const AssetInput: FC<AssetInputProps> = ({
       {/* Neo-Brutalism Modal Konfirmasi Hapus Berkas Fisik Kustom */}
       <ConfirmModal
         isOpen={isConfirmOpen}
-        title="HAPUS BERKAS FISIK?"
-        message={`Apakah Anda yakin ingin menghapus berkas fisik "${trimmed.replace("/uploads/", "")}" dari folder public/uploads/? Data berkas akan dihapus permanen dari penyimpanan.`}
-        confirmLabel="YA, HAPUS BERKAS"
-        cancelLabel="BATALKAN"
+        title="DELETE PHYSICAL FILE?"
+        message={`Are you sure you want to permanently delete "${trimmed.replace("/uploads/", "")}" from public/uploads/? This action cannot be undone.`}
+        confirmLabel="YES, DELETE FILE"
+        cancelLabel="CANCEL"
         onConfirm={handleConfirmDelete}
         onCancel={() => setIsConfirmOpen(false)}
       />

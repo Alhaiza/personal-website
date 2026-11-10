@@ -71,14 +71,14 @@ export const SkillsManager: FC = () => {
     // VALIDASI KETAT 1: Format wajib berekstensi .svg atau MIME image/svg+xml
     const isSvg = file.name.toLowerCase().endsWith(".svg") || file.type === "image/svg+xml";
     if (!isSvg) {
-      toast.error("Format berkas ditolak! Anda WAJIB mengunggah file berekstensi .svg", "GAGAL VALIDASI");
+      toast.error("File rejected! You MUST upload an .svg file", "VALIDATION ERROR");
       e.target.value = "";
       return;
     }
 
     // VALIDASI KETAT 2: Ukuran berkas maksimal 200 KB agar hemat storage & bandwidth
     if (file.size > 200 * 1024) {
-      toast.error("Ukuran berkas SVG terlalu besar (maksimal 200 KB).", "UKURAN DITOLAK");
+      toast.error("SVG file size is too large (max 200 KB).", "SIZE EXCEEDED");
       e.target.value = "";
       return;
     }
@@ -90,7 +90,7 @@ export const SkillsManager: FC = () => {
       if (text && text.includes("<svg")) {
         setSvgCode(text.trim());
         setUploadedFileName(file.name);
-        toast.success(`Berkas SVG "${file.name}" berhasil diunggah!`);
+        toast.success(`SVG file "${file.name}" uploaded successfully!`);
 
         // Otomatis isi nama teknologi dari nama berkas jika input nama masih kosong
         if (!name.trim()) {
@@ -98,12 +98,12 @@ export const SkillsManager: FC = () => {
           setName(autoName.toUpperCase());
         }
       } else {
-        toast.error("Berkas yang diunggah tidak berisi elemen <svg> yang valid.", "KONTEN TIDAK VALID");
+        toast.error("The uploaded file does not contain valid <svg> markup.", "INVALID SVG");
       }
     };
 
     reader.onerror = () => {
-      toast.error("Gagal membaca berkas SVG lokal dari laptop.", "SERVER/FILE ERROR");
+      toast.error("Failed to read local SVG file.", "FILE ERROR");
     };
 
     reader.readAsText(file);
@@ -115,7 +115,7 @@ export const SkillsManager: FC = () => {
   const handleAdd = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error("Nama teknologi/skill wajib diisi, tidak boleh kosong.", "GAGAL VALIDASI");
+      toast.error("Skill / Technology name is required.", "VALIDATION ERROR");
       return;
     }
 
@@ -123,9 +123,9 @@ export const SkillsManager: FC = () => {
     if (!cleanSvg || !cleanSvg.includes("<svg") || !cleanSvg.includes("</svg>")) {
       toast.error(
         inputMode === "upload"
-          ? "Silakan pilih berkas .svg terlebih dahulu!"
-          : "Format SVG tidak valid! Pastikan diawali <svg> dan diakhiri </svg>",
-        "GAGAL VALIDASI"
+          ? "Please choose an .svg file first!"
+          : "Invalid SVG format! Ensure it starts with <svg> and ends with </svg>",
+        "VALIDATION ERROR"
       );
       return;
     }
@@ -133,8 +133,8 @@ export const SkillsManager: FC = () => {
     // VALIDASI KUOTA LIMIT: Mencegah featured melebihi batas (FEATURED_LIMIT = 6)
     if (featured && isLimitReached) {
       toast.error(
-        `Batas maksimal skill featured (${FEATURED_LIMIT}) sudah tercapai! Hapus centang featured pada skill lain terlebih dahulu.`,
-        "LIMIT FEATURED TERCAPAI"
+        `Maximum featured skills limit (${FEATURED_LIMIT}) reached! Please unfeature another skill first.`,
+        "LIMIT REACHED"
       );
       return;
     }
@@ -154,14 +154,14 @@ export const SkillsManager: FC = () => {
       setSvgCode("");
       setUploadedFileName(null);
       setFeatured(false);
-      toast.success(`Skill "${newSkill.name}" berhasil disimpan ke Cloud Firestore!`);
+      toast.success(`Skill "${newSkill.name}" saved to Cloud Firestore!`);
     } catch (err: unknown) {
       // FEEDBACK ERROR KOMPREHENSIF: Membedakan Permission Denied, Network, dan Server Error
-      const errorMsg = (err as Error)?.message || "Terjadi kesalahan saat menyimpan data ke Firestore.";
+      const errorMsg = (err as Error)?.message || "An error occurred while saving skill to Firestore.";
       if (errorMsg.includes("permission-denied") || errorMsg.includes("insufficient permissions")) {
-        toast.error("Izin ditolak oleh Firestore Security Rules. Pastikan Anda telah login sebagai admin.", "PERMISSION DENIED");
+        toast.error("Permission denied by Firestore Security Rules. Ensure you are signed in as admin.", "PERMISSION DENIED");
       } else if (errorMsg.includes("unavailable") || errorMsg.includes("network")) {
-        toast.error("Koneksi jaringan terputus atau server Firestore sedang sibuk.", "NETWORK ERROR");
+        toast.error("Network connection error or Firestore server unavailable.", "NETWORK ERROR");
       } else {
         toast.error(errorMsg, "SERVER ERROR");
       }
@@ -192,9 +192,9 @@ export const SkillsManager: FC = () => {
       await deleteSkill(skillId);
       // Sinkronkan state lokal dan update cache
       await updateContent({ skills: skills.filter((s) => s.id !== skillId) });
-      toast.success(`Skill "${skillName}" berhasil dihapus dari Cloud Firestore.`);
+      toast.success(`Skill "${skillName}" deleted from Cloud Firestore.`);
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Gagal menghapus skill dari Firestore", "SERVER ERROR");
+      toast.error((err as Error).message || "Failed to delete skill from Firestore", "SERVER ERROR");
     }
   };
 
@@ -208,9 +208,9 @@ export const SkillsManager: FC = () => {
       const copy = [...skills];
       [copy[index], copy[target]] = [copy[target], copy[index]];
       await updateContent({ skills: copy });
-      toast.info("Urutan keahlian diperbarui.", "URUTAN DIUBAH");
+      toast.info("Skill order updated.", "ORDER CHANGED");
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Gagal mengubah urutan", "SERVER ERROR");
+      toast.error((err as Error).message || "Failed to change order", "SERVER ERROR");
     }
   };
 
@@ -223,8 +223,8 @@ export const SkillsManager: FC = () => {
     // Jika ingin mencentang dan kuota sudah penuh, tolak
     if (willBeFeatured && isLimitReached) {
       toast.error(
-        `Maksimal ${FEATURED_LIMIT} skill featured! Hilangkan status featured dari skill lain sebelum mencentang skill ini.`,
-        "LIMIT TERCAPAI"
+        `Maximum ${FEATURED_LIMIT} featured skills allowed! Please unfeature another skill before featuring this one.`,
+        "LIMIT REACHED"
       );
       return;
     }
@@ -235,12 +235,12 @@ export const SkillsManager: FC = () => {
       );
       await updateContent({ skills: updated });
       if (willBeFeatured) {
-        toast.success(`Skill "${skill.name}" ditandai sebagai Featured (${skills.filter(s => s.id === skill.id || s.featured).length}/${FEATURED_LIMIT})!`);
+        toast.success(`Skill "${skill.name}" marked as Featured (${skills.filter(s => s.id === skill.id || s.featured).length}/${FEATURED_LIMIT})!`);
       } else {
-        toast.info(`Status Featured untuk "${skill.name}" dinonaktifkan.`);
+        toast.info(`Featured status for "${skill.name}" disabled.`);
       }
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Gagal memperbarui status featured", "SERVER ERROR");
+      toast.error((err as Error).message || "Failed to update featured status", "SERVER ERROR");
     }
   };
 
@@ -249,7 +249,7 @@ export const SkillsManager: FC = () => {
       <div className="pb-6 border-b-2 border-black">
         <h2 className="text-2xl font-black uppercase tracking-tight text-black">SKILLS MANAGER</h2>
         <p className="font-mono text-xs text-neutral-600 mt-1">
-          Kelola keahlian teknologi dengan 2 opsi input ikon: <strong>Copas Kode SVG</strong> atau <strong>Upload Berkas .SVG (Wajib SVG)</strong>.
+          Manage tech skills with 2 icon input options: <strong>Paste SVG Code</strong> or <strong>Upload .SVG File (SVG Required)</strong>.
         </p>
       </div>
 
@@ -270,7 +270,7 @@ export const SkillsManager: FC = () => {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="contoh: LARAVEL, NUXT.JS, POSTGRESQL, DOCKER"
+            placeholder="e.g. LARAVEL, NUXT.JS, POSTGRESQL, DOCKER"
             className={inputClass}
           />
         </div>
@@ -278,7 +278,7 @@ export const SkillsManager: FC = () => {
         {/* Pilihan 2 Opsi Tab */}
         <div>
           <label className="block text-xs font-black uppercase tracking-wider mb-2">
-            METODE INPUT IKON (WAJIB SVG)
+            ICON INPUT METHOD (SVG REQUIRED)
           </label>
           <div className="grid grid-cols-2 gap-3">
             <button
@@ -291,7 +291,7 @@ export const SkillsManager: FC = () => {
               }`}
             >
               <Upload className="w-4 h-4" />
-              <span>OPSI 1: UPLOAD FILE .SVG</span>
+              <span>OPTION 1: UPLOAD .SVG FILE</span>
             </button>
 
             <button
@@ -304,7 +304,7 @@ export const SkillsManager: FC = () => {
               }`}
             >
               <Code2 className="w-4 h-4" />
-              <span>OPSI 2: COPAS KODE SVG</span>
+              <span>OPTION 2: PASTE SVG CODE</span>
             </button>
           </div>
         </div>
@@ -315,15 +315,15 @@ export const SkillsManager: FC = () => {
             /* OPSI 1: Upload File .svg (Wajib SVG) */
             <div>
               <label className="block text-xs font-black uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Upload className="w-4 h-4" /> PILIH BERKAS SVG DARI LAPTOP (WAJIB .SVG)
+                <Upload className="w-4 h-4" /> CHOOSE SVG FILE (.SVG REQUIRED)
               </label>
               <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-black bg-white hover:bg-neutral-100 cursor-pointer transition text-center group">
                 <Upload className="w-8 h-8 mb-2 text-neutral-600 group-hover:scale-110 transition-transform" />
                 <span className="font-mono text-xs font-black text-black">
-                  {uploadedFileName ? `Berkas terpilih: ${uploadedFileName}` : "Klik untuk mencari berkas .svg"}
+                  {uploadedFileName ? `Selected file: ${uploadedFileName}` : "Click to browse .svg file"}
                 </span>
                 <span className="font-mono text-[10px] text-neutral-500 mt-1">
-                  Hanya menerima file berekstensi .svg (format lain otomatis ditolak)
+                  Accepts .svg files only (other formats will be rejected)
                 </span>
                 <input
                   type="file"
@@ -338,7 +338,7 @@ export const SkillsManager: FC = () => {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label htmlFor="skill-svg-paste" className="text-xs font-black uppercase tracking-wider flex items-center gap-1.5">
-                  <Code2 className="w-4 h-4" /> TEMPEL (COPAS) KODE &lt;SVG&gt;...&lt;/SVG&gt;
+                  <Code2 className="w-4 h-4" /> PASTE &lt;SVG&gt;...&lt;/SVG&gt; CODE
                 </label>
                 {svgCode && (
                   <button
@@ -346,7 +346,7 @@ export const SkillsManager: FC = () => {
                     onClick={() => setSvgCode("")}
                     className="text-[10px] font-mono text-rose-600 hover:underline uppercase font-bold"
                   >
-                    Kosongkan
+                    Clear
                   </button>
                 )}
               </div>
@@ -376,7 +376,7 @@ export const SkillsManager: FC = () => {
             </div>
             <div className="flex-1">
               <div className="text-xs font-black uppercase flex items-center gap-2">
-                <span>{name || "NAMA SKILL"}</span>
+                <span>{name || "SKILL NAME"}</span>
                 {featured && (
                   <span className="px-1.5 py-0.5 bg-[#bef264] border border-black text-[9px] font-black uppercase">
                     FEATURED
@@ -386,10 +386,10 @@ export const SkillsManager: FC = () => {
               <div className="text-[10px] font-mono flex items-center gap-1 text-neutral-600 mt-0.5">
                 {svgCode && svgCode.includes("<svg") ? (
                   <span className="text-emerald-700 font-bold flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> SVG Valid & Siap Ditambahkan
+                    <CheckCircle2 className="w-3.5 h-3.5" /> SVG Valid &amp; Ready to Add
                   </span>
                 ) : (
-                  <span>Belum ada SVG (Upload atau Copas kode SVG di atas)</span>
+                  <span>No SVG provided yet (Upload or paste SVG code above)</span>
                 )}
               </div>
             </div>
@@ -412,8 +412,8 @@ export const SkillsManager: FC = () => {
               onChange={(e) => {
                 if (e.target.checked && isLimitReached) {
                   toast.error(
-                    `Batas maksimal featured (${FEATURED_LIMIT}) sudah tercapai!`,
-                    "LIMIT PENUH"
+                    `Maximum featured limit (${FEATURED_LIMIT}) reached!`,
+                    "LIMIT FULL"
                   );
                   return;
                 }
@@ -424,18 +424,18 @@ export const SkillsManager: FC = () => {
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black uppercase tracking-wider">
-                  FEATURED SKILL (TAMPILKAN DI BANNER HOME)
+                  FEATURED SKILL (DISPLAY ON HOME BANNER)
                 </span>
                 <span className={`text-[10px] font-mono px-2 py-0.5 border border-black font-black uppercase ${
                   isLimitReached ? "bg-[#fb7185] text-black" : "bg-[#bef264] text-black"
                 }`}>
-                  {featuredCount}/{FEATURED_LIMIT} TERPAKAI
+                  {featuredCount}/{FEATURED_LIMIT} USED
                 </span>
               </div>
               <p className="font-mono text-[11px] text-neutral-600 mt-0.5">
                 {isLimitReached && !featured
-                  ? `Limit maksimal ${FEATURED_LIMIT} featured skill telah tercapai. Hapus featured pada skill lain jika ingin menandai skill baru ini.`
-                  : `Skill bertanda featured akan menjadi prioritas utama tampil di Banner Home (maksimal ${FEATURED_LIMIT} skill).`}
+                  ? `Maximum ${FEATURED_LIMIT} featured skills limit reached. Unfeature another skill to feature this new one.`
+                  : `Featured skills will be prioritized on the Home banner (maximum ${FEATURED_LIMIT} skills).`}
               </p>
             </div>
           </label>
@@ -448,7 +448,7 @@ export const SkillsManager: FC = () => {
           className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#6366f1] text-white hover:bg-[#4f46e5] disabled:opacity-50 border-2 border-black shadow-neo text-xs font-black uppercase tracking-wider cursor-pointer transition-all duration-100 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
         >
           <Plus className="w-4 h-4 stroke-[3]" />
-          <span>{saving ? "MENYIMPAN KE CLOUD..." : "TAMBAH SKILL KE WEBSITE"}</span>
+          <span>{saving ? "SAVING TO CLOUD..." : "ADD SKILL TO WEBSITE"}</span>
         </button>
       </form>
 
@@ -460,19 +460,19 @@ export const SkillsManager: FC = () => {
           </h3>
           <div className="flex items-center gap-2">
             <span className="text-[11px] font-mono font-bold uppercase text-neutral-600">
-              FEATURED DI BANNER:
+              FEATURED IN BANNER:
             </span>
             <span className={`text-xs font-mono font-black px-2 py-0.5 border border-black ${
               isLimitReached ? "bg-[#fb7185] text-black" : "bg-[#bef264] text-black"
             }`}>
-              {featuredCount} / {FEATURED_LIMIT} MAKSIMAL
+              {featuredCount} / {FEATURED_LIMIT} MAX
             </span>
           </div>
         </div>
 
         {skills.length === 0 ? (
           <p className="font-mono text-xs text-neutral-600 font-bold uppercase bg-white border-2 border-black p-6 shadow-neo">
-            BELUM ADA SKILL TERDAFTAR.
+            NO SKILLS REGISTERED YET.
           </p>
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -506,10 +506,10 @@ export const SkillsManager: FC = () => {
                     disabled={isLimitReached && !skill.featured}
                     title={
                       isLimitReached && !skill.featured
-                        ? `Limit featured (${FEATURED_LIMIT}) sudah tercapai!`
+                        ? `Featured limit (${FEATURED_LIMIT}) reached!`
                         : skill.featured
-                        ? "Hapus dari Featured"
-                        : "Jadikan Featured"
+                        ? "Remove from Featured"
+                        : "Mark as Featured"
                     }
                     className={`shrink-0 px-2 py-1 border border-black text-[10px] font-black uppercase flex items-center gap-1 transition-all ${
                       skill.featured
@@ -530,7 +530,7 @@ export const SkillsManager: FC = () => {
                       type="button"
                       onClick={() => handleMove(index, -1)}
                       disabled={index === 0}
-                      aria-label={`Naikkan ${skill.name}`}
+                      aria-label={`Move up ${skill.name}`}
                       className="w-8 h-8 border-2 border-black bg-white hover:bg-[#bef264] shadow-neo-sm flex items-center justify-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                     >
                       <ArrowUp className="w-4 h-4" />
@@ -539,7 +539,7 @@ export const SkillsManager: FC = () => {
                       type="button"
                       onClick={() => handleMove(index, 1)}
                       disabled={index === skills.length - 1}
-                      aria-label={`Turunkan ${skill.name}`}
+                      aria-label={`Move down ${skill.name}`}
                       className="w-8 h-8 border-2 border-black bg-white hover:bg-[#bef264] shadow-neo-sm flex items-center justify-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                     >
                       <ArrowDown className="w-4 h-4" />
@@ -564,8 +564,10 @@ export const SkillsManager: FC = () => {
       {/* Neo-Brutalism Modal Konfirmasi Hapus Skill */}
       <ConfirmModal
         isOpen={confirmModal.isOpen}
-        title="HAPUS SKILL?"
-        message={`Apakah Anda yakin ingin menghapus keahlian "${confirmModal.skillName}" dari banner dan portofolio?`}
+        title="DELETE SKILL?"
+        message={`Are you sure you want to delete skill "${confirmModal.skillName}" from the banner and portfolio?`}
+        confirmLabel="YES, DELETE NOW"
+        cancelLabel="CANCEL"
         onConfirm={handleConfirmDelete}
         onCancel={() => setConfirmModal({ isOpen: false, skillId: "", skillName: "" })}
       />

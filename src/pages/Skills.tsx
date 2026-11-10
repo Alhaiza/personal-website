@@ -26,12 +26,12 @@ export const Skills: FC = () => {
             TECHNICAL SKILLS
           </h1>
           <p className="font-mono text-xs sm:text-sm text-neutral-700 mt-2 max-w-xl">
-            Kumpulan teknologi, framework, dan perkakas pengembangan web modern yang aktif saya gunakan.
+            A comprehensive collection of modern web development technologies, frameworks, and tools.
           </p>
         </div>
 
         <NeoButton to="/projects" variant="purple" size="md">
-          <span>LIHAT PROYEK</span>
+          <span>VIEW PROJECTS</span>
         </NeoButton>
       </div>
 
@@ -41,7 +41,7 @@ export const Skills: FC = () => {
 
       <div className="flex justify-center">
         <NeoButton to="/" variant="white" size="md">
-          <span>← KEMBALI KE BERANDA</span>
+          <span>← BACK TO HOME</span>
         </NeoButton>
       </div>
     </div>

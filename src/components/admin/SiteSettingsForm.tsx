@@ -46,15 +46,15 @@ export const SiteSettingsForm: FC = () => {
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (isAnyUploading) {
-      toast.error("Harap tunggu hingga proses unggah berkas selesai.", "TUNGGU UNGGAHAN");
+      toast.error("Please wait until file upload finishes.", "UPLOADING");
       return;
     }
 
     try {
       updateContent({ settings: form });
-      toast.success("Pengaturan umum berhasil disimpan dan langsung aktif di seluruh website!");
+      toast.success("General settings saved successfully and live across the website!");
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Gagal menyimpan pengaturan umum");
+      toast.error((err as Error).message || "Failed to save general settings");
     }
   };
 
@@ -63,7 +63,7 @@ export const SiteSettingsForm: FC = () => {
       <div className="pb-6 mb-8 border-b-2 border-black">
         <h2 className="text-2xl font-black uppercase tracking-tight text-black">GENERAL SETTINGS</h2>
         <p className="font-mono text-xs text-neutral-600 mt-1">
-          Teks dan aset global yang dipakai di banyak halaman publik (Brand, Footer, CTA, dan Aset Hero).
+          Global texts and assets used across public pages (Brand, Footer, CTA, and Hero assets).
         </p>
       </div>
 
@@ -76,7 +76,7 @@ export const SiteSettingsForm: FC = () => {
             <AssetInput
               id="profileImageUrl"
               label="PROFILE PICTURE URL"
-              hint="Tampil di: foto besar pada bagian Hero"
+              hint="Displayed in: Hero profile photo"
               kind="image"
               folder="profiles"
               square
@@ -86,16 +86,16 @@ export const SiteSettingsForm: FC = () => {
                 const nextSettings = { ...form, profileImageUrl: "" };
                 setForm(nextSettings);
                 updateContent({ settings: nextSettings });
-                toast.success("Foto profil dihapus dari database & penyimpanan.");
+                toast.success("Profile photo removed from database & storage.");
               }}
               onUploadingChange={setUploadingProfile}
-              placeholder="https://... atau /foto-profil.jpg"
+              placeholder="https://... or /profile-photo.jpg"
             />
 
             <AssetInput
               id="resumeUrl"
               label="RESUME FILE URL"
-              hint="Tampil di: tombol Download Resume (Hero) & View Full Resume (Experience)"
+              hint="Displayed in: Download Resume button (Hero) & View Full Resume (Experience)"
               kind="file"
               folder="resumes"
               value={form.resumeUrl}
@@ -104,7 +104,7 @@ export const SiteSettingsForm: FC = () => {
                 const nextSettings = { ...form, resumeUrl: "" };
                 setForm(nextSettings);
                 updateContent({ settings: nextSettings });
-                toast.success("File resume dihapus dari database & penyimpanan.");
+                toast.success("Resume file removed from database & storage.");
               }}
               onUploadingChange={setUploadingResume}
               placeholder="/resume.pdf"
@@ -152,7 +152,7 @@ export const SiteSettingsForm: FC = () => {
             {isAnyUploading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin stroke-[2.5]" />
-                <span>MENGUNGGAH BERKAS...</span>
+                <span>UPLOADING FILE...</span>
               </>
             ) : (
               <>

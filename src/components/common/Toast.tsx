@@ -35,9 +35,9 @@ export const ToastProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }, 4000);
   };
 
-  const success = (message: string, title?: string) => showToast(message, "success", title || "BERHASIL!");
-  const error = (message: string, title?: string) => showToast(message, "error", title || "GAGAL!");
-  const info = (message: string, title?: string) => showToast(message, "info", title || "INFORMASI");
+  const success = (message: string, title?: string) => showToast(message, "success", title || "SUCCESS!");
+  const error = (message: string, title?: string) => showToast(message, "error", title || "ERROR!");
+  const info = (message: string, title?: string) => showToast(message, "info", title || "INFO");
 
   return (
     <ToastContext.Provider value={{ showToast, success, error, info }}>

@@ -45,9 +45,9 @@ export const Contact: FC = () => {
       setSubmitted(true);
     } catch (err: unknown) {
       // Tangani error secara transparan sesuai audit
-      const msg = err instanceof Error ? err.message : "Terjadi kesalahan saat mengirim pesan.";
+      const msg = err instanceof Error ? err.message : "An error occurred while sending message.";
       setErrorMessage(
-        `Gagal mengirim pesan ke server (${msg}). Silakan hubungi langsung via email di ${contact.email || "kontak kami"}.`
+        `Failed to send message to server (${msg}). Please reach out directly via email at ${contact.email || "our contact"}.`
       );
     } finally {
       setLoading(false);
@@ -120,7 +120,7 @@ export const Contact: FC = () => {
                   setFormData({ name: "", email: "", subject: "", message: "" });
                 }}
               >
-                <span>KIRIM PESAN LAIN</span>
+                <span>SEND ANOTHER MESSAGE</span>
               </NeoButton>
             </div>
           ) : (
@@ -134,7 +134,7 @@ export const Contact: FC = () => {
 
               <div>
                 <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                  NAMA ANDA
+                  YOUR NAME
                 </label>
                 <input
                   type="text"
@@ -148,7 +148,7 @@ export const Contact: FC = () => {
 
               <div>
                 <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                  EMAIL ANDA
+                  YOUR EMAIL
                 </label>
                 <input
                   type="email"
@@ -162,28 +162,28 @@ export const Contact: FC = () => {
 
               <div>
                 <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                  SUBJEK PESAN
+                  SUBJECT
                 </label>
                 <input
                   type="text"
                   required
                   value={formData.subject}
                   onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                  placeholder="Proyek Freelance / Kolaborasi"
+                  placeholder="Freelance Project / Collaboration"
                   className="w-full border-2 border-black p-3 font-mono text-xs focus:bg-neutral-50 focus:outline-none shadow-neo-sm"
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                  PESAN
+                  MESSAGE
                 </label>
                 <textarea
                   required
                   rows={4}
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  placeholder="Ceritakan tentang ide atau kebutuhan proyek Anda..."
+                  placeholder="Tell me about your project, idea, or questions..."
                   className="w-full border-2 border-black p-3 font-mono text-xs focus:bg-neutral-50 focus:outline-none shadow-neo-sm resize-none"
                 />
               </div>
@@ -195,7 +195,7 @@ export const Contact: FC = () => {
                 className="w-full"
                 disabled={loading}
               >
-                <span>{loading ? "MENGIRIMKAN..." : "KIRIM PESAN"}</span>
+                <span>{loading ? "SENDING..." : "SEND MESSAGE"}</span>
                 <Send className="w-4 h-4 stroke-[2.5]" />
               </NeoButton>
             </form>

@@ -75,7 +75,7 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
                     type="button"
                     onClick={handlePrev}
                     className="w-8 h-8 bg-[#fb7185] border-2 border-black flex items-center justify-center hover:bg-[#f43f5e] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
-                    aria-label="Proyek sebelumnya"
+                    aria-label="Previous project"
                   >
                     <ChevronLeft className="w-4 h-4 stroke-[3]" />
                   </button>
@@ -83,7 +83,7 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
                     type="button"
                     onClick={handleNext}
                     className="w-8 h-8 bg-[#fb7185] border-2 border-black flex items-center justify-center hover:bg-[#f43f5e] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
-                    aria-label="Proyek berikutnya"
+                    aria-label="Next project"
                   >
                     <ChevronRight className="w-4 h-4 stroke-[3]" />
                   </button>
@@ -152,7 +152,7 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
             </div>
           ) : (
             <div className="p-8 border-2 border-black bg-white font-mono text-xs text-center font-bold">
-              BELUM ADA PROYEK.
+              NO PROJECTS YET.
             </div>
           )}
         </div>
@@ -168,7 +168,7 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
                 className={`w-2.5 h-2.5 rounded-full border border-black transition-all cursor-pointer ${
                   idx === currentIndex ? "bg-black w-3 h-3" : "bg-white"
                 }`}
-                aria-label={`Buka slide ${idx + 1}`}
+                aria-label={`Open slide ${idx + 1}`}
               />
             ))}
           </div>
@@ -211,7 +211,7 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
                     rel="noreferrer"
                     className="inline-flex items-center gap-1 mt-3 text-xs font-mono font-bold underline hover:text-[#6366f1]"
                   >
-                    <span>VERIFIKASI BADGE</span>
+                    <span>VERIFY BADGE</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 )}

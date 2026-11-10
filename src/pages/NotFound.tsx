@@ -17,15 +17,15 @@ export const NotFound: FC = () => {
           404
         </span>
         <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-black mb-2">
-          HALAMAN TIDAK DITEMUKAN
+          PAGE NOT FOUND
         </h1>
         <p className="font-mono text-xs sm:text-sm text-neutral-600 mb-8">
-          Halaman yang Anda tuju tidak tersedia atau telah dipindahkan ke alamat lain.
+          The page you are looking for does not exist or has been moved.
         </p>
 
         <NeoButton to="/" variant="lime" size="md">
           <ArrowLeft className="w-4 h-4 stroke-[3]" />
-          <span>KEMBALI KE BERANDA</span>
+          <span>BACK TO HOME</span>
         </NeoButton>
       </div>
     </div>

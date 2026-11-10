@@ -38,9 +38,9 @@ export const ContactSettingsForm: FC = () => {
     e.preventDefault();
     try {
       updateContent({ contact: form });
-      toast.success("Pengaturan kontak berhasil disimpan dan langsung aktif di seluruh website!");
+      toast.success("Contact settings saved successfully and active across the website!");
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Gagal menyimpan pengaturan kontak");
+      toast.error((err as Error).message || "Failed to save contact settings");
     }
   };
 
@@ -51,7 +51,7 @@ export const ContactSettingsForm: FC = () => {
           CONTACT &amp; SOCIAL
         </h2>
         <p className="font-mono text-xs text-neutral-600 mt-1">
-          Atur informasi kontak dan tautan sosial media terpusat yang tampil di halaman publik (Hero, Footer, dan Halaman Kontak).
+          Manage direct contact info and social media links displayed across public pages (Hero, Footer, and Contact page).
         </p>
       </div>
 

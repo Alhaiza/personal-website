@@ -26,12 +26,12 @@ export const Experience: FC = () => {
               WORK EXPERIENCE
             </h1>
             <p className="font-mono text-xs sm:text-sm text-neutral-700 mt-2 max-w-xl">
-              Perjalanan profesional, rekam jejak peran, dan kontribusi pada berbagai tim rekayasa perangkat lunak.
+              Professional journey, role track record, and engineering contributions across teams.
             </p>
           </div>
 
           <NeoButton href={content.settings.resumeUrl || "/resume.pdf"} variant="lime" size="md">
-            <span>UNDUH RESUME</span>
+            <span>DOWNLOAD RESUME</span>
           </NeoButton>
         </div>
       </div>
@@ -42,7 +42,7 @@ export const Experience: FC = () => {
 
       <div className="p-6 sm:p-12 pt-8 flex justify-center">
         <NeoButton to="/" variant="white" size="md">
-          <span>← KEMBALI KE BERANDA</span>
+          <span>← BACK TO HOME</span>
         </NeoButton>
       </div>
     </div>
