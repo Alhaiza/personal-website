@@ -9,6 +9,7 @@ import {
   Save,
   Menu,
   X,
+  Star,
 } from "lucide-react";
 import { useAuth } from "../context/authContext";
 import { useSiteContent } from "../context/siteContentContext";
@@ -80,6 +81,11 @@ export const Dashboard: FC = () => {
   // State lokal formulir profil
   const [profileForm, setProfileForm] = useState<UserProfile>(content.profile);
 
+  // Batas maksimal proyek unggulan (Featured Projects di Carousel Home)
+  const PROJECT_FEATURED_LIMIT = 4;
+  const featuredProjectsCount = content.projects.filter((p) => p.featured).length;
+  const isProjectFeaturedLimitReached = featuredProjectsCount >= PROJECT_FEATURED_LIMIT;
+
   // State lokal tambah proyek baru
   const [newProject, setNewProject] = useState<Omit<ProjectItem, "id">>({
     title: "",
@@ -88,7 +94,7 @@ export const Dashboard: FC = () => {
     imageUrl: "https://images.unsplash.com/photo-1592210454359-9043f067919b?w=800&auto=format&fit=crop&q=80",
     projectUrl: "",
     githubUrl: "",
-    featured: true,
+    featured: false,
   });
   const [tagsInput, setTagsInput] = useState("React, TypeScript, Tailwind");
   const [uploadingProjectImage, setUploadingProjectImage] = useState(false);
@@ -154,6 +160,14 @@ export const Dashboard: FC = () => {
     }
     if (!newProject.title.trim()) return;
 
+    if (newProject.featured && isProjectFeaturedLimitReached) {
+      toast.error(
+        `Batas maksimal proyek featured (${PROJECT_FEATURED_LIMIT}) sudah tercapai! Hapus status featured dari proyek lain terlebih dahulu.`,
+        "LIMIT FEATURED TERCAPAI"
+      );
+      return;
+    }
+
     try {
       const parsedTags = tagsInput
         .split(",")
@@ -181,6 +195,33 @@ export const Dashboard: FC = () => {
       setTagsInput("");
     } catch (err: unknown) {
       toast.error((err as Error).message || "Gagal menambahkan proyek");
+    }
+  };
+
+  // Toggle Featured Proyek
+  const handleToggleProjectFeatured = (proj: ProjectItem) => {
+    const willBeFeatured = !proj.featured;
+
+    if (willBeFeatured && isProjectFeaturedLimitReached) {
+      toast.error(
+        `Maksimal ${PROJECT_FEATURED_LIMIT} proyek featured! Hilangkan status featured dari proyek lain sebelum mencentang proyek ini.`,
+        "LIMIT TERCAPAI"
+      );
+      return;
+    }
+
+    try {
+      const updated = content.projects.map((p) =>
+        p.id === proj.id ? { ...p, featured: willBeFeatured } : p
+      );
+      updateContent({ projects: updated });
+      if (willBeFeatured) {
+        toast.success(`Proyek "${proj.title}" ditandai sebagai Featured (${content.projects.filter(p => p.id === proj.id || p.featured).length}/${PROJECT_FEATURED_LIMIT})!`);
+      } else {
+        toast.info(`Status Featured untuk proyek "${proj.title}" dinonaktifkan.`);
+      }
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Gagal mengubah status featured proyek");
     }
   };
 
@@ -581,18 +622,46 @@ export const Dashboard: FC = () => {
 
                 <label
                   htmlFor="project-featured"
-                  className="flex items-center gap-3 p-3 border-2 border-black bg-neutral-50 shadow-neo-sm cursor-pointer select-none"
+                  className={`flex items-start gap-3 p-3.5 border-2 border-black shadow-neo-sm select-none transition-colors ${
+                    isProjectFeaturedLimitReached && !newProject.featured
+                      ? "bg-neutral-100 opacity-60 cursor-not-allowed"
+                      : "bg-neutral-50 hover:bg-[#bef264]/20 cursor-pointer"
+                  }`}
                 >
                   <input
                     id="project-featured"
                     type="checkbox"
                     checked={newProject.featured}
-                    onChange={(e) => setNewProject({ ...newProject, featured: e.target.checked })}
-                    className="w-5 h-5 accent-black cursor-pointer"
+                    disabled={isProjectFeaturedLimitReached && !newProject.featured}
+                    onChange={(e) => {
+                      if (e.target.checked && isProjectFeaturedLimitReached) {
+                        toast.error(
+                          `Batas maksimal proyek featured (${PROJECT_FEATURED_LIMIT}) sudah tercapai!`,
+                          "LIMIT PENUH"
+                        );
+                        return;
+                      }
+                      setNewProject({ ...newProject, featured: e.target.checked });
+                    }}
+                    className="w-5 h-5 accent-black cursor-pointer disabled:cursor-not-allowed mt-0.5"
                   />
-                  <span className="text-xs font-black uppercase tracking-wider">
-                    FEATURED PROJECT <span className="font-mono font-normal normal-case text-neutral-600">(Tampilkan di carousel Home)</span>
-                  </span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black uppercase tracking-wider">
+                        FEATURED PROJECT (TAMPILKAN DI CAROUSEL HOME)
+                      </span>
+                      <span className={`text-[10px] font-mono px-2 py-0.5 border border-black font-black uppercase ${
+                        isProjectFeaturedLimitReached ? "bg-[#fb7185] text-black" : "bg-[#bef264] text-black"
+                      }`}>
+                        {featuredProjectsCount}/{PROJECT_FEATURED_LIMIT} TERPAKAI
+                      </span>
+                    </div>
+                    <p className="font-mono text-[11px] text-neutral-600 mt-0.5">
+                      {isProjectFeaturedLimitReached && !newProject.featured
+                        ? `Limit maksimal ${PROJECT_FEATURED_LIMIT} proyek unggulan telah tercapai. Hapus status featured pada proyek lain sebelum memilih proyek ini.`
+                        : `Proyek dengan centang featured akan diprioritaskan tampil di carousel Home (maksimal ${PROJECT_FEATURED_LIMIT} proyek).`}
+                    </p>
+                  </div>
                 </label>
 
                 <NeoButton
@@ -609,9 +678,22 @@ export const Dashboard: FC = () => {
 
               {/* Daftar Proyek */}
               <div>
-                <h3 className="text-sm font-black uppercase tracking-wider mb-4">
-                  EXISTING PROJECTS ({content.projects.length})
-                </h3>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                  <h3 className="text-sm font-black uppercase tracking-wider">
+                    EXISTING PROJECTS ({content.projects.length})
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono font-bold uppercase text-neutral-600">
+                      FEATURED DI CAROUSEL:
+                    </span>
+                    <span className={`text-xs font-mono font-black px-2 py-0.5 border border-black ${
+                      isProjectFeaturedLimitReached ? "bg-[#fb7185] text-black" : "bg-[#bef264] text-black"
+                    }`}>
+                      {featuredProjectsCount} / {PROJECT_FEATURED_LIMIT} MAKSIMAL
+                    </span>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {content.projects.map((proj) => (
                     <div key={proj.id} className="bg-white border-2 border-black p-4 shadow-neo flex flex-col justify-between">
@@ -626,11 +708,28 @@ export const Dashboard: FC = () => {
                         )}
                         <div className="flex items-start justify-between gap-2">
                           <h4 className="font-black text-sm uppercase text-black">{proj.title}</h4>
-                          {proj.featured && (
-                            <span className="shrink-0 px-2 py-0.5 bg-[#bef264] border border-black text-[10px] font-black uppercase">
-                              FEATURED
-                            </span>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleProjectFeatured(proj)}
+                            disabled={isProjectFeaturedLimitReached && !proj.featured}
+                            title={
+                              isProjectFeaturedLimitReached && !proj.featured
+                                ? `Limit featured (${PROJECT_FEATURED_LIMIT}) sudah tercapai!`
+                                : proj.featured
+                                ? "Hapus dari Featured"
+                                : "Jadikan Featured"
+                            }
+                            className={`shrink-0 px-2 py-1 border border-black text-[10px] font-black uppercase flex items-center gap-1 transition-all ${
+                              proj.featured
+                                ? "bg-[#bef264] text-black hover:bg-neutral-200 cursor-pointer shadow-neo-sm"
+                                : isProjectFeaturedLimitReached
+                                ? "bg-neutral-100 text-neutral-400 opacity-50 cursor-not-allowed border-neutral-300"
+                                : "bg-white text-neutral-600 hover:bg-[#bef264] hover:text-black cursor-pointer shadow-neo-sm"
+                            }`}
+                          >
+                            <Star className={`w-3 h-3 ${proj.featured ? "fill-black" : ""}`} />
+                            <span>{proj.featured ? "FEATURED" : "+ FEATURE"}</span>
+                          </button>
                         </div>
                         <p className="font-mono text-xs text-neutral-600 line-clamp-2 mt-1">{proj.description}</p>
                         <div className="flex flex-wrap gap-1.5 mt-3">
