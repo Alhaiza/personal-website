@@ -78,34 +78,43 @@ export const SiteContentProvider: FC<{ children: ReactNode }> = ({ children }) =
     };
   }, []);
 
-  // Simpan data ke Firestore dan sinkronkan state lokal
-  const updateContent = (patch: Partial<SiteContent>) => {
+  // Simpan data ke Firestore dan sinkronkan state lokal secara asinkron
+  const updateContent = async (patch: Partial<SiteContent>): Promise<void> => {
     const next: SiteContent = { ...contentRef.current, ...patch };
     contentRef.current = next;
     setContent(next);
     persistCache(next);
 
+    const promises: Promise<void>[] = [];
+
     // Kirim sinkronisasi spesifik ke Cloud Firestore
     if (patch.settings) {
-      updateSiteSettings(patch.settings).catch((e) => console.error("Gagal sinkron settings ke Firestore:", e));
+      promises.push(updateSiteSettings(patch.settings));
     }
     if (patch.profile) {
-      updateProfileData(patch.profile).catch((e) => console.error("Gagal sinkron profile ke Firestore:", e));
+      promises.push(updateProfileData(patch.profile));
     }
     if (patch.contact) {
-      updateContactSettings(patch.contact).catch((e) => console.error("Gagal sinkron contact ke Firestore:", e));
+      promises.push(updateContactSettings(patch.contact));
     }
     if (patch.projects) {
-      patch.projects.forEach((p) => saveProject(p).catch((e) => console.error("Gagal simpan project:", e)));
+      patch.projects.forEach((p) => promises.push(saveProject(p)));
     }
     if (patch.certifications) {
-      patch.certifications.forEach((c) => saveCertification(c).catch((e) => console.error("Gagal simpan cert:", e)));
+      patch.certifications.forEach((c) => promises.push(saveCertification(c)));
     }
     if (patch.experiences) {
-      patch.experiences.forEach((exp) => saveExperience(exp).catch((e) => console.error("Gagal simpan exp:", e)));
+      patch.experiences.forEach((exp) => promises.push(saveExperience(exp)));
     }
     if (patch.skills) {
-      patch.skills.forEach((s) => saveSkill(s).catch((e) => console.error("Gagal simpan skill:", e)));
+      patch.skills.forEach((s) => promises.push(saveSkill(s)));
+    }
+
+    try {
+      await Promise.all(promises);
+    } catch (err: unknown) {
+      console.error("Gagal sinkronisasi data ke Cloud Firestore:", err);
+      throw err;
     }
   };
 

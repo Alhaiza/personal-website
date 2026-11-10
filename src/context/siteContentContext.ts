@@ -16,10 +16,9 @@ export interface SiteContentContextType {
   content: SiteContent;
   /**
    * Memperbarui satu atau beberapa bagian isi situs sekaligus.
-   * Contoh: updateContent({ projects: [...] }) hanya mengganti daftar proyek,
-   * bagian lain tidak tersentuh.
+   * Mengembalikan Promise agar pemanggil bisa menangani state loading dan error toast.
    */
-  updateContent: (patch: Partial<SiteContent>) => void;
+  updateContent: (patch: Partial<SiteContent>) => Promise<void>;
 }
 
 export const SiteContentContext = createContext<SiteContentContextType | undefined>(undefined);

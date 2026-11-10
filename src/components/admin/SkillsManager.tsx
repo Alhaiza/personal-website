@@ -39,6 +39,8 @@ export const SkillsManager: FC = () => {
     skillName: "",
   });
 
+  const [saving, setSaving] = useState(false);
+
   // Handler saat admin memilih/upload file .svg dari laptop (Opsi 2)
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -47,7 +49,13 @@ export const SkillsManager: FC = () => {
     // Validasi ketat: Wajib format SVG
     const isSvg = file.name.toLowerCase().endsWith(".svg") || file.type === "image/svg+xml";
     if (!isSvg) {
-      toast.error("Format berkas ditolak! Anda WAJIB mengunggah file berekstensi .svg", "WAJIB SVG");
+      toast.error("Format berkas ditolak! Anda WAJIB mengunggah file berekstensi .svg", "GAGAL VALIDASI");
+      e.target.value = "";
+      return;
+    }
+
+    if (file.size > 200 * 1024) {
+      toast.error("Ukuran berkas SVG terlalu besar (maksimal 200 KB).", "UKURAN DITOLAK");
       e.target.value = "";
       return;
     }
@@ -66,49 +74,60 @@ export const SkillsManager: FC = () => {
           setName(autoName.toUpperCase());
         }
       } else {
-        toast.error("Berkas yang diunggah tidak berisi markup SVG yang valid.", "SVG RUSAK");
+        toast.error("Berkas yang diunggah tidak berisi elemen <svg> yang valid.", "KONTEN TIDAK VALID");
       }
     };
 
     reader.onerror = () => {
-      toast.error("Gagal membaca berkas SVG lokal.", "ERROR");
+      toast.error("Gagal membaca berkas SVG lokal dari laptop.", "SERVER/FILE ERROR");
     };
 
     reader.readAsText(file);
   };
 
-  const handleAdd = (e: FormEvent) => {
+  const handleAdd = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error("Nama skill wajib diisi.", "VALIDASI");
+      toast.error("Nama teknologi/skill wajib diisi, tidak boleh kosong.", "GAGAL VALIDASI");
       return;
     }
 
-    if (!svgCode.trim() || !svgCode.includes("<svg")) {
+    const cleanSvg = svgCode.trim();
+    if (!cleanSvg || !cleanSvg.includes("<svg") || !cleanSvg.includes("</svg>")) {
       toast.error(
         inputMode === "upload"
           ? "Silakan pilih berkas .svg terlebih dahulu!"
-          : "Silakan tempel (copas) kode <svg>...</svg> terlebih dahulu!",
-        "WAJIB SVG"
+          : "Format SVG tidak valid! Pastikan diawali <svg> dan diakhiri </svg>",
+        "GAGAL VALIDASI"
       );
       return;
     }
 
+    setSaving(true);
     try {
       const newSkill: SkillItem = {
         id: crypto.randomUUID(),
         name: name.trim(),
         iconType: "custom",
-        svgCode: svgCode.trim(),
+        svgCode: cleanSvg,
       };
 
-      updateContent({ skills: [...skills, newSkill] });
+      await updateContent({ skills: [...skills, newSkill] });
       setName("");
       setSvgCode("");
       setUploadedFileName(null);
-      toast.success(`Skill "${newSkill.name}" dengan ikon SVG berhasil disimpan!`);
+      toast.success(`Skill "${newSkill.name}" berhasil disimpan ke Cloud Firestore!`);
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Gagal menambahkan skill");
+      const errorMsg = (err as Error)?.message || "Terjadi kesalahan saat menyimpan data ke Firestore.";
+      if (errorMsg.includes("permission-denied") || errorMsg.includes("insufficient permissions")) {
+        toast.error("Izin ditolak oleh Firestore Security Rules. Pastikan Anda telah login sebagai admin.", "PERMISSION DENIED");
+      } else if (errorMsg.includes("unavailable") || errorMsg.includes("network")) {
+        toast.error("Koneksi jaringan terputus atau server Firestore sedang sibuk.", "NETWORK ERROR");
+      } else {
+        toast.error(errorMsg, "SERVER ERROR");
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -120,27 +139,27 @@ export const SkillsManager: FC = () => {
     });
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     try {
-      updateContent({ skills: skills.filter((s) => s.id !== confirmModal.skillId) });
+      await updateContent({ skills: skills.filter((s) => s.id !== confirmModal.skillId) });
       toast.success(`Skill "${confirmModal.skillName}" berhasil dihapus.`);
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Gagal menghapus skill");
+      toast.error((err as Error).message || "Gagal menghapus skill dari Firestore", "SERVER ERROR");
     } finally {
       setConfirmModal({ isOpen: false, skillId: "", skillName: "" });
     }
   };
 
-  const handleMove = (index: number, direction: -1 | 1) => {
+  const handleMove = async (index: number, direction: -1 | 1) => {
     const target = index + direction;
     if (target < 0 || target >= skills.length) return;
     try {
       const copy = [...skills];
       [copy[index], copy[target]] = [copy[target], copy[index]];
-      updateContent({ skills: copy });
+      await updateContent({ skills: copy });
       toast.info("Urutan keahlian diperbarui.", "URUTAN DIUBAH");
     } catch (err: unknown) {
-      toast.error((err as Error).message || "Gagal mengubah urutan");
+      toast.error((err as Error).message || "Gagal mengubah urutan", "SERVER ERROR");
     }
   };
 
@@ -292,10 +311,11 @@ export const SkillsManager: FC = () => {
         {/* Tombol Submit Tambah Skill */}
         <button
           type="submit"
-          className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#6366f1] text-white hover:bg-[#4f46e5] border-2 border-black shadow-neo text-xs font-black uppercase tracking-wider cursor-pointer transition-all duration-100 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+          disabled={saving}
+          className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#6366f1] text-white hover:bg-[#4f46e5] disabled:opacity-50 border-2 border-black shadow-neo text-xs font-black uppercase tracking-wider cursor-pointer transition-all duration-100 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
         >
           <Plus className="w-4 h-4 stroke-[3]" />
-          <span>TAMBAH SKILL KE WEBSITE</span>
+          <span>{saving ? "MENYIMPAN KE CLOUD..." : "TAMBAH SKILL KE WEBSITE"}</span>
         </button>
       </form>
 
