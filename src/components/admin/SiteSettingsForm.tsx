@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent, type FC, type FormEvent } from "react";
-import { Save, CheckCircle2, Globe } from "lucide-react";
+import { Save, Globe } from "lucide-react";
 import { useSiteContent } from "../../context/siteContentContext";
+import { useToast } from "../common/toastContext";
 import { AssetInput } from "./AssetInput";
 import type { SiteSettings } from "../../types";
 
@@ -29,19 +30,22 @@ const inputClass =
 
 export const SiteSettingsForm: FC = () => {
   const { content, updateContent } = useSiteContent();
+  const toast = useToast();
   const [form, setForm] = useState<SiteSettings>(content.settings);
-  const [saved, setSaved] = useState(false);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-    setSaved(false);
   };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    updateContent({ settings: form });
-    setSaved(true);
+    try {
+      updateContent({ settings: form });
+      toast.success("Pengaturan umum berhasil disimpan dan langsung aktif di seluruh website!");
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Gagal menyimpan pengaturan umum");
+    }
   };
 
   return (
@@ -52,13 +56,6 @@ export const SiteSettingsForm: FC = () => {
           Teks dan aset global yang dipakai di banyak halaman publik (Brand, Footer, CTA, dan Aset Hero).
         </p>
       </div>
-
-      {saved && (
-        <div className="mb-6 p-4 border-2 border-black shadow-neo bg-[#bef264] flex items-center gap-3 font-mono text-xs font-bold max-w-3xl">
-          <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
-          <span>Pengaturan umum berhasil disimpan dan langsung aktif di seluruh website!</span>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-8 items-start">
         <form onSubmit={handleSubmit} className="xl:col-span-3 bg-white border-2 border-black p-6 sm:p-8 shadow-neo space-y-6">

@@ -2,6 +2,7 @@ import type { FC } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthProvider";
 import { SiteContentProvider } from "./context/SiteContentProvider";
+import { ToastProvider } from "./components/common/Toast";
 import { RootLayout } from "./components/layout/RootLayout";
 import { RequireAuth } from "./components/admin/RequireAuth";
 
@@ -34,41 +35,43 @@ const App: FC = () => {
   return (
     <AuthProvider>
       <SiteContentProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Halaman Publik (Shared RootLayout: Navbar + Outlet + Footer) */}
-            <Route path="/" element={<RootLayout />}>
-              <Route index element={<Home />} />
-              <Route path="projects" element={<Projects />} />
-              <Route path="certifications" element={<Certifications />} />
-              <Route path="skills" element={<Skills />} />
-              <Route path="experience" element={<Experience />} />
-              <Route path="contact" element={<Contact />} />
-              <Route path="*" element={<NotFound />} />
-            </Route>
+        <ToastProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Halaman Publik (Shared RootLayout: Navbar + Outlet + Footer) */}
+              <Route path="/" element={<RootLayout />}>
+                <Route index element={<Home />} />
+                <Route path="projects" element={<Projects />} />
+                <Route path="certifications" element={<Certifications />} />
+                <Route path="skills" element={<Skills />} />
+                <Route path="experience" element={<Experience />} />
+                <Route path="contact" element={<Contact />} />
+                <Route path="*" element={<NotFound />} />
+              </Route>
 
-            {/* Gerbang Rahasia Login Admin */}
-            <Route path="/login" element={<Login />} />
+              {/* Gerbang Rahasia Login Admin */}
+              <Route path="/login" element={<Login />} />
 
-            {/* Dashboard Terproteksi CMS Admin */}
-            <Route
-              path="/dashboard"
-              element={
-                <RequireAuth>
-                  <Dashboard />
-                </RequireAuth>
-              }
-            />
-            <Route
-              path="/dashboard/:tab"
-              element={
-                <RequireAuth>
-                  <Dashboard />
-                </RequireAuth>
-              }
-            />
-          </Routes>
-        </BrowserRouter>
+              {/* Dashboard Terproteksi CMS Admin */}
+              <Route
+                path="/dashboard"
+                element={
+                  <RequireAuth>
+                    <Dashboard />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/dashboard/:tab"
+                element={
+                  <RequireAuth>
+                    <Dashboard />
+                  </RequireAuth>
+                }
+              />
+            </Routes>
+          </BrowserRouter>
+        </ToastProvider>
       </SiteContentProvider>
     </AuthProvider>
   );

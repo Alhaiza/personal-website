@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent, type FC, type FormEvent } from "react";
-import { Mail, MapPin, Save, CheckCircle2, Link2 } from "lucide-react";
+import { Mail, MapPin, Save, Link2 } from "lucide-react";
 import { useSiteContent } from "../../context/siteContentContext";
+import { useToast } from "../common/toastContext";
 import type { ContactSettings } from "../../types";
 
 /**
@@ -25,19 +26,22 @@ const inputClass =
 
 export const ContactSettingsForm: FC = () => {
   const { content, updateContent } = useSiteContent();
+  const toast = useToast();
   const [form, setForm] = useState<ContactSettings>(content.contact);
-  const [saved, setSaved] = useState(false);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
-    setSaved(false);
   };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    updateContent({ contact: form });
-    setSaved(true);
+    try {
+      updateContent({ contact: form });
+      toast.success("Pengaturan kontak berhasil disimpan dan langsung aktif di seluruh website!");
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Gagal menyimpan pengaturan kontak");
+    }
   };
 
   return (
@@ -50,13 +54,6 @@ export const ContactSettingsForm: FC = () => {
           Atur informasi kontak dan tautan sosial media terpusat yang tampil di halaman publik (Hero, Footer, dan Halaman Kontak).
         </p>
       </div>
-
-      {saved && (
-        <div className="mb-6 p-4 border-2 border-black shadow-neo bg-[#bef264] flex items-center gap-3 font-mono text-xs font-bold max-w-3xl">
-          <CheckCircle2 className="w-5 h-5 text-black stroke-[2.5]" />
-          <span>Pengaturan kontak berhasil disimpan dan langsung aktif di seluruh website!</span>
-        </div>
-      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-5 gap-8 items-start">
         <form

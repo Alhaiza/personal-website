@@ -1,6 +1,8 @@
 import { useState, type ChangeEvent, type FC, type FormEvent } from "react";
-import { ArrowUp, ArrowDown, Plus, Trash2, CheckCircle2 } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Trash2 } from "lucide-react";
 import { useSiteContent } from "../../context/siteContentContext";
+import { useToast } from "../common/toastContext";
+import { ConfirmModal } from "../common/ConfirmModal";
 import type { SkillIconType, SkillItem } from "../../types";
 
 /**
@@ -24,51 +26,84 @@ const inputClass =
 
 export const SkillsManager: FC = () => {
   const { content, updateContent } = useSiteContent();
+  const toast = useToast();
   const skills = content.skills;
 
   const [name, setName] = useState("");
   const [iconType, setIconType] = useState<SkillIconType>("react");
-  const [notice, setNotice] = useState<string | null>(null);
 
-  const showNotice = (text: string) => {
-    setNotice(text);
-    setTimeout(() => setNotice(null), 3000);
-  };
+  // State untuk Custom Neo-Brutalism Confirm Modal
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    skillId: string;
+    skillName: string;
+  }>({
+    isOpen: false,
+    skillId: "",
+    skillName: "",
+  });
 
   const handleAdd = (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const newSkill: SkillItem = {
-      id: crypto.randomUUID(),
-      name: name.trim(),
-      iconType,
-    };
+    try {
+      const newSkill: SkillItem = {
+        id: crypto.randomUUID(),
+        name: name.trim(),
+        iconType,
+      };
 
-    updateContent({ skills: [...skills, newSkill] });
-    setName("");
-    showNotice(`Skill "${newSkill.name}" berhasil ditambahkan!`);
+      updateContent({ skills: [...skills, newSkill] });
+      setName("");
+      toast.success(`Skill "${newSkill.name}" berhasil ditambahkan dan disimpan!`);
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Gagal menambahkan skill");
+    }
   };
 
-  const handleDelete = (id: string) => {
-    if (!confirm("Hapus skill ini?")) return;
-    updateContent({ skills: skills.filter((s) => s.id !== id) });
-    showNotice("Skill berhasil dihapus.");
+  const promptDelete = (id: string, skillName: string) => {
+    setConfirmModal({
+      isOpen: true,
+      skillId: id,
+      skillName,
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    try {
+      updateContent({ skills: skills.filter((s) => s.id !== confirmModal.skillId) });
+      toast.success(`Skill "${confirmModal.skillName}" berhasil dihapus.`);
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Gagal menghapus skill");
+    } finally {
+      setConfirmModal({ isOpen: false, skillId: "", skillName: "" });
+    }
   };
 
   const handleMove = (index: number, direction: -1 | 1) => {
     const target = index + direction;
     if (target < 0 || target >= skills.length) return;
-    const copy = [...skills];
-    [copy[index], copy[target]] = [copy[target], copy[index]];
-    updateContent({ skills: copy });
+    try {
+      const copy = [...skills];
+      [copy[index], copy[target]] = [copy[target], copy[index]];
+      updateContent({ skills: copy });
+      toast.info("Urutan keahlian diperbarui.", "URUTAN DIUBAH");
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Gagal mengubah urutan");
+    }
   };
 
   const handleIconChange = (id: string, e: ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value as SkillIconType;
-    updateContent({
-      skills: skills.map((s) => (s.id === id ? { ...s, iconType: value } : s)),
-    });
+    try {
+      updateContent({
+        skills: skills.map((s) => (s.id === id ? { ...s, iconType: value } : s)),
+      });
+      toast.success("Ikon teknologi berhasil diperbarui!");
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Gagal mengubah ikon");
+    }
   };
 
   return (
@@ -79,13 +114,6 @@ export const SkillsManager: FC = () => {
           Atur daftar teknologi yang tampil di banner Skills dan halaman /skills publik.
         </p>
       </div>
-
-      {notice && (
-        <div className="p-4 border-2 border-black shadow-neo bg-[#bef264] flex items-center gap-3 font-mono text-xs font-bold max-w-2xl">
-          <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
-          <span>{notice}</span>
-        </div>
-      )}
 
       {/* Form tambah skill */}
       <form onSubmit={handleAdd} className="bg-white border-2 border-black p-6 sm:p-8 shadow-neo max-w-2xl">
@@ -195,7 +223,7 @@ export const SkillsManager: FC = () => {
 
                   <button
                     type="button"
-                    onClick={() => handleDelete(skill.id)}
+                    onClick={() => promptDelete(skill.id, skill.name)}
                     className="px-3 py-1.5 bg-[#fb7185] hover:bg-[#f43f5e] border-2 border-black text-xs font-black uppercase shadow-neo-sm flex items-center gap-1.5 cursor-pointer active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -207,6 +235,15 @@ export const SkillsManager: FC = () => {
           </ul>
         )}
       </div>
+
+      {/* Neo-Brutalism Modal Konfirmasi Hapus Skill */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title="HAPUS SKILL?"
+        message={`Apakah Anda yakin ingin menghapus keahlian "${confirmModal.skillName}" dari banner dan portofolio?`}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setConfirmModal({ isOpen: false, skillId: "", skillName: "" })}
+      />
     </div>
   );
 };

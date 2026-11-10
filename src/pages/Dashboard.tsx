@@ -7,13 +7,13 @@ import {
   Trash2,
   ExternalLink,
   Save,
-  CheckCircle2,
-  AlertCircle,
   Menu,
   X,
 } from "lucide-react";
 import { useAuth } from "../context/authContext";
 import { useSiteContent } from "../context/siteContentContext";
+import { useToast } from "../components/common/toastContext";
+import { ConfirmModal } from "../components/common/ConfirmModal";
 import { NeoButton } from "../components/common/NeoButton";
 import { ContactSettingsForm } from "../components/admin/ContactSettingsForm";
 import { SkillsManager } from "../components/admin/SkillsManager";
@@ -49,6 +49,7 @@ export const Dashboard: FC = () => {
   const navigate = useNavigate();
 
   const { content, updateContent } = useSiteContent();
+  const toast = useToast();
 
   const { tab } = useParams<{ tab: string }>();
   const activeTab: AdminTab = isAdminTab(tab) ? tab : "profile";
@@ -57,7 +58,23 @@ export const Dashboard: FC = () => {
     navigate(next === "profile" ? "/dashboard" : `/dashboard/${next}`);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // State untuk Neo-Brutalism Confirm Modal (menggantikan window.confirm)
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
+
+  const closeConfirmModal = () => {
+    setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+  };
 
   // State lokal formulir profil
   const [profileForm, setProfileForm] = useState<UserProfile>(content.profile);
@@ -97,18 +114,17 @@ export const Dashboard: FC = () => {
   // Muat pesan kontak dari Firestore saat admin membuka dashboard
   useEffect(() => {
     let isMounted = true;
-    getContactMessages().then((data) => {
-      if (isMounted) setMessages(data);
-    });
+    getContactMessages()
+      .then((data) => {
+        if (isMounted) setMessages(data);
+      })
+      .catch((err: unknown) => {
+        toast.error((err as Error).message || "Gagal memuat pesan kontak", "GAGAL MEMUAT");
+      });
     return () => {
       isMounted = false;
     };
-  }, []);
-
-  const showNotification = (text: string, type: "success" | "error" = "success") => {
-    setFeedback({ type, text });
-    setTimeout(() => setFeedback(null), 4000);
-  };
+  }, [toast]);
 
   const handleLogout = async () => {
     await logout();
@@ -118,8 +134,12 @@ export const Dashboard: FC = () => {
   // Simpan Profile ke Firestore
   const handleSaveProfile = (e: FormEvent) => {
     e.preventDefault();
-    updateContent({ profile: profileForm });
-    showNotification("Profil berhasil diperbarui dan tersimpan di Cloud Firestore!");
+    try {
+      updateContent({ profile: profileForm });
+      toast.success("Profil berhasil diperbarui dan tersimpan di Cloud Firestore!");
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Gagal menyimpan data profil");
+    }
   };
 
   // Tambah Proyek ke Firestore
@@ -127,42 +147,53 @@ export const Dashboard: FC = () => {
     e.preventDefault();
     if (!newProject.title.trim()) return;
 
-    const parsedTags = tagsInput
-      .split(",")
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
+    try {
+      const parsedTags = tagsInput
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
 
-    const project: ProjectItem = {
-      id: crypto.randomUUID(),
-      ...newProject,
-      tags: parsedTags,
-    };
+      const project: ProjectItem = {
+        id: crypto.randomUUID(),
+        ...newProject,
+        tags: parsedTags,
+      };
 
-    updateContent({ projects: [project, ...content.projects] });
-    showNotification("Proyek baru berhasil dibuat dan disimpan di Firestore!");
+      updateContent({ projects: [project, ...content.projects] });
+      toast.success("Proyek baru berhasil dibuat dan disimpan di Firestore!");
 
-    setNewProject({
-      title: "",
-      description: "",
-      tags: ["React"],
-      imageUrl: "",
-      projectUrl: "",
-      githubUrl: "",
-      featured: false,
-    });
-    setTagsInput("");
+      setNewProject({
+        title: "",
+        description: "",
+        tags: ["React"],
+        imageUrl: "",
+        projectUrl: "",
+        githubUrl: "",
+        featured: false,
+      });
+      setTagsInput("");
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Gagal menambahkan proyek");
+    }
   };
 
-  // Hapus Proyek dari Firestore
-  const handleDeleteProject = async (id: string) => {
-    if (!confirm("Hapus proyek ini dari portofolio dan database?")) return;
-    try {
-      await deleteProject(id);
-      updateContent({ projects: content.projects.filter((p) => p.id !== id) });
-      showNotification("Proyek berhasil dihapus dari Cloud Firestore.");
-    } catch (err: unknown) {
-      showNotification((err as Error).message || "Gagal menghapus proyek", "error");
-    }
+  // Hapus Proyek dari Firestore menggunakan Custom Neo-Brutalism Modal
+  const handleDeleteProject = (id: string, title?: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "HAPUS PROYEK?",
+      message: `Apakah Anda yakin ingin menghapus proyek "${title || "ini"}" dari portofolio dan Cloud Firestore? Data tidak dapat dikembalikan.`,
+      onConfirm: async () => {
+        closeConfirmModal();
+        try {
+          await deleteProject(id);
+          updateContent({ projects: content.projects.filter((p) => p.id !== id) });
+          toast.success("Proyek berhasil dihapus dari Cloud Firestore.");
+        } catch (err: unknown) {
+          toast.error((err as Error).message || "Gagal menghapus proyek");
+        }
+      },
+    });
   };
 
   // Tambah Sertifikasi ke Firestore
@@ -170,33 +201,44 @@ export const Dashboard: FC = () => {
     e.preventDefault();
     if (!newCert.title.trim()) return;
 
-    const cert: CertificationItem = {
-      id: crypto.randomUUID(),
-      ...newCert,
-    };
+    try {
+      const cert: CertificationItem = {
+        id: crypto.randomUUID(),
+        ...newCert,
+      };
 
-    updateContent({ certifications: [...content.certifications, cert] });
-    showNotification("Sertifikasi baru berhasil disimpan di Firestore!");
+      updateContent({ certifications: [...content.certifications, cert] });
+      toast.success("Sertifikasi baru berhasil disimpan di Firestore!");
 
-    setNewCert({
-      title: "",
-      issuer: "",
-      description: "",
-      credentialUrl: "",
-      imageUrl: "",
-    });
+      setNewCert({
+        title: "",
+        issuer: "",
+        description: "",
+        credentialUrl: "",
+        imageUrl: "",
+      });
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Gagal menambahkan sertifikasi");
+    }
   };
 
-  // Hapus Sertifikasi dari Firestore
-  const handleDeleteCert = async (id: string) => {
-    if (!confirm("Hapus sertifikasi ini dari database?")) return;
-    try {
-      await deleteCertification(id);
-      updateContent({ certifications: content.certifications.filter((c) => c.id !== id) });
-      showNotification("Sertifikasi berhasil dihapus dari Cloud Firestore.");
-    } catch (err: unknown) {
-      showNotification((err as Error).message || "Gagal menghapus sertifikasi", "error");
-    }
+  // Hapus Sertifikasi dari Firestore menggunakan Custom Neo-Brutalism Modal
+  const handleDeleteCert = (id: string, title?: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "HAPUS SERTIFIKASI?",
+      message: `Apakah Anda yakin ingin menghapus sertifikasi "${title || "ini"}" dari Cloud Firestore?`,
+      onConfirm: async () => {
+        closeConfirmModal();
+        try {
+          await deleteCertification(id);
+          updateContent({ certifications: content.certifications.filter((c) => c.id !== id) });
+          toast.success("Sertifikasi berhasil dihapus dari Cloud Firestore.");
+        } catch (err: unknown) {
+          toast.error((err as Error).message || "Gagal menghapus sertifikasi");
+        }
+      },
+    });
   };
 
   // Tambah Pengalaman ke Firestore
@@ -204,44 +246,63 @@ export const Dashboard: FC = () => {
     e.preventDefault();
     if (!newExp.role.trim() || !newExp.company.trim()) return;
 
-    const exp: ExperienceItem = {
-      id: crypto.randomUUID(),
-      ...newExp,
-    };
+    try {
+      const exp: ExperienceItem = {
+        id: crypto.randomUUID(),
+        ...newExp,
+      };
 
-    updateContent({ experiences: [exp, ...content.experiences] });
-    showNotification("Pengalaman baru berhasil disimpan di Firestore!");
+      updateContent({ experiences: [exp, ...content.experiences] });
+      toast.success("Pengalaman baru berhasil disimpan di Firestore!");
 
-    setNewExp({
-      role: "",
-      company: "",
-      period: "2024 - PRESENT",
-      description: "",
+      setNewExp({
+        role: "",
+        company: "",
+        period: "2024 - PRESENT",
+        description: "",
+      });
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Gagal menambahkan pengalaman");
+    }
+  };
+
+  // Hapus Pengalaman dari Firestore menggunakan Custom Neo-Brutalism Modal
+  const handleDeleteExp = (id: string, role?: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "HAPUS PENGALAMAN?",
+      message: `Apakah Anda yakin ingin menghapus riwayat karier "${role || "posisi ini"}" dari Cloud Firestore?`,
+      onConfirm: async () => {
+        closeConfirmModal();
+        try {
+          await deleteExperience(id);
+          updateContent({ experiences: content.experiences.filter((e) => e.id !== id) });
+          toast.success("Pengalaman berhasil dihapus dari Cloud Firestore.");
+        } catch (err: unknown) {
+          toast.error((err as Error).message || "Gagal menghapus pengalaman");
+        }
+      },
     });
   };
 
-  // Hapus Pengalaman dari Firestore
-  const handleDeleteExp = async (id: string) => {
-    if (!confirm("Hapus riwayat pengalaman ini dari database?")) return;
-    try {
-      await deleteExperience(id);
-      updateContent({ experiences: content.experiences.filter((e) => e.id !== id) });
-      showNotification("Pengalaman berhasil dihapus dari Cloud Firestore.");
-    } catch (err: unknown) {
-      showNotification((err as Error).message || "Gagal menghapus pengalaman", "error");
-    }
-  };
-
-  // Hapus Pesan Kontak dari Firestore
-  const handleDeleteMsg = async (id?: string) => {
-    if (!id || !confirm("Hapus pesan ini dari inbox database?")) return;
-    try {
-      await deleteContactMessage(id);
-      setMessages(messages.filter((m) => m.id !== id));
-      showNotification("Pesan berhasil dihapus dari database.");
-    } catch (err: unknown) {
-      showNotification((err as Error).message || "Gagal menghapus pesan", "error");
-    }
+  // Hapus Pesan Kontak dari Firestore menggunakan Custom Neo-Brutalism Modal
+  const handleDeleteMsg = (id?: string, sender?: string) => {
+    if (!id) return;
+    setConfirmModal({
+      isOpen: true,
+      title: "HAPUS PESAN MASUK?",
+      message: `Hapus pesan dari "${sender || "pengunjung"}" dari database inbox?`,
+      onConfirm: async () => {
+        closeConfirmModal();
+        try {
+          await deleteContactMessage(id);
+          setMessages(messages.filter((m) => m.id !== id));
+          toast.success("Pesan berhasil dihapus dari database.");
+        } catch (err: unknown) {
+          toast.error((err as Error).message || "Gagal menghapus pesan");
+        }
+      },
+    });
   };
 
   return (
@@ -311,20 +372,6 @@ export const Dashboard: FC = () => {
 
         {/* Dynamic Tab Panel */}
         <main className="flex-1 p-6 sm:p-10 bg-neutral-50 min-h-[500px]">
-          {feedback && (
-            <div
-              className={`mb-6 p-4 border-2 border-black shadow-neo flex items-center gap-3 font-mono text-xs font-bold ${
-                feedback.type === "success" ? "bg-[#bef264]" : "bg-[#fb7185]"
-              }`}
-            >
-              {feedback.type === "success" ? (
-                <CheckCircle2 className="w-5 h-5 text-black stroke-[2.5]" />
-              ) : (
-                <AlertCircle className="w-5 h-5 text-black stroke-[2.5]" />
-              )}
-              <span>{feedback.text}</span>
-            </div>
-          )}
 
           {/* TAB 1: PROFILE INFO */}
           {activeTab === "profile" && (
@@ -570,7 +617,7 @@ export const Dashboard: FC = () => {
                       <div className="mt-4 pt-3 border-t border-black flex justify-end">
                         <button
                           type="button"
-                          onClick={() => handleDeleteProject(proj.id)}
+                          onClick={() => handleDeleteProject(proj.id, proj.title)}
                           className="px-3 py-1 bg-[#fb7185] hover:bg-[#f43f5e] border border-black text-xs font-black tracking-wider uppercase flex items-center gap-1.5 shadow-neo-sm cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -688,7 +735,7 @@ export const Dashboard: FC = () => {
                     <div className="mt-4 pt-3 border-t border-black flex justify-end">
                       <button
                         type="button"
-                        onClick={() => handleDeleteCert(c.id)}
+                        onClick={() => handleDeleteCert(c.id, c.title)}
                         className="px-2.5 py-1 bg-white border border-black text-xs font-bold shadow-neo-sm hover:bg-neutral-100 cursor-pointer"
                       >
                         DELETE
@@ -775,7 +822,7 @@ export const Dashboard: FC = () => {
                     </div>
                     <button
                       type="button"
-                      onClick={() => handleDeleteExp(exp.id)}
+                      onClick={() => handleDeleteExp(exp.id, exp.role)}
                       className="px-2.5 py-1 bg-[#fb7185] border border-black text-xs font-bold shadow-neo-sm hover:bg-[#f43f5e] cursor-pointer"
                     >
                       DELETE
@@ -833,7 +880,7 @@ export const Dashboard: FC = () => {
                       <div className="mt-4 flex justify-end">
                         <button
                           type="button"
-                          onClick={() => handleDeleteMsg(msg.id)}
+                          onClick={() => handleDeleteMsg(msg.id, msg.name)}
                           className="px-3 py-1 bg-[#fb7185] hover:bg-[#f43f5e] border border-black text-xs font-black uppercase shadow-neo-sm cursor-pointer"
                         >
                           DELETE INQUIRY
@@ -847,6 +894,15 @@ export const Dashboard: FC = () => {
           )}
         </main>
       </div>
+
+      {/* Neo-Brutalism Confirmation Modal untuk Aksi Hapus */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={closeConfirmModal}
+      />
     </div>
   );
 };
