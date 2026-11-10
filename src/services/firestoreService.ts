@@ -109,7 +109,8 @@ export const saveSkill = async (skill: SkillItem): Promise<void> => {
   const docRef = doc(db, "skills", skill.id);
   await setDoc(docRef, {
     name: skill.name,
-    iconType: skill.iconType,
+    iconType: skill.iconType || "custom",
+    svgCode: skill.svgCode || "",
     updatedAt: serverTimestamp(),
   });
 };

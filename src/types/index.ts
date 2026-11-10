@@ -37,13 +37,14 @@ export interface ExperienceItem {
   description: string;
 }
 
-// Daftar ikon yang tersedia untuk skill (sesuai komponen SkillIcon)
-export type SkillIconType = "react" | "typescript" | "nodejs" | "tailwind" | "mongodb" | "git";
+// Daftar ikon bawaan atau fallback untuk skill
+export type SkillIconType = "react" | "typescript" | "nodejs" | "tailwind" | "mongodb" | "git" | "custom";
 
 export interface SkillItem {
   id: string;
   name: string;
-  iconType: SkillIconType;
+  iconType?: SkillIconType;
+  svgCode: string; // Wajib: markup SVG (<svg ...>...</svg>)
 }
 
 // Profil yang tampil di Hero. Urutan skill/proyek mengikuti urutan array-nya.
