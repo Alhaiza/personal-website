@@ -4,17 +4,13 @@ import { NeoButton } from "../common/NeoButton";
 import type { ProjectItem, CertificationItem } from "../../types";
 
 /**
- * Komponen ProjectsAndCertifications
+ * ProjectsAndCertifications Component
  * 
- * Memotong (slicing) bagian 2 kolom:
- * - Kiri (70%): FEATURED PROJECTS
- *   - Header dengan tombol VIEW ALL PROJECTS dan navigasi panah carousel < >
- *   - Kartu proyek dengan grafis ilustrasi kontras tinggi, label tag, dan tombol VIEW DETAILS
- *   - Titik indikator pagination carousel
- * - Kanan (30%): CERTIFICATIONS
- *   - Latar belakang hijau limau (#bef264)
- *   - 3 kartu sertifikasi bertumpuk dengan hard shadow (Cert 1, Cert 2, Cert 3)
- *   - Tombol VIEW ALL CERTIFICATIONS di bagian bawah
+ * Slices the 2-column section on the homepage:
+ * - Left (70%): FEATURED PROJECTS with interactive carousel
+ * - Right (30%): CERTIFICATIONS cards
+ * 
+ * Updated: Action buttons now use React Router SPA links (`to="/projects"` and `to="/certifications"`).
  */
 
 interface ProjectsAndCertificationsProps {
@@ -26,15 +22,12 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
   projects,
   certifications,
 }) => {
-  // State untuk menyimpan indeks slide proyek yang sedang aktif
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Fungsi untuk kembali ke proyek sebelumnya
   const handlePrev = () => {
     setCurrentIndex((prev) => (prev === 0 ? projects.length - 1 : prev - 1));
   };
 
-  // Fungsi untuk maju ke proyek berikutnya
   const handleNext = () => {
     setCurrentIndex((prev) => (prev === projects.length - 1 ? 0 : prev + 1));
   };
@@ -43,28 +36,28 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
 
   return (
     <section id="projects" className="w-full grid grid-cols-1 lg:grid-cols-12 border-b-2 border-black">
-      {/* ================= KIRI: PROYEK UNGGULAN (FEATURED PROJECTS) ================= */}
+      {/* ================= LEFT: FEATURED PROJECTS ================= */}
       <div className="lg:col-span-8 bg-white p-6 sm:p-10 border-b-2 lg:border-b-0 lg:border-r-2 border-black flex flex-col justify-between">
         <div>
-          {/* Baris Judul & Tombol Kontrol */}
+          {/* Header Bar */}
           <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
             <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-black">
               FEATURED PROJECTS
             </h2>
 
             <div className="flex items-center gap-3">
-              <NeoButton size="sm" variant="white" href="#all-projects">
+              <NeoButton size="sm" variant="white" to="/projects">
                 <span>VIEW ALL PROJECTS</span>
                 <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
               </NeoButton>
 
-              {/* Tombol Panah Prev / Next Carousel */}
+              {/* Prev / Next Carousel Controls */}
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={handlePrev}
                   className="w-8 h-8 bg-[#fb7185] border-2 border-black flex items-center justify-center hover:bg-[#f43f5e] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
-                  aria-label="Proyek sebelumnya"
+                  aria-label="Previous project"
                 >
                   <ChevronLeft className="w-4 h-4 stroke-[3]" />
                 </button>
@@ -72,7 +65,7 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
                   type="button"
                   onClick={handleNext}
                   className="w-8 h-8 bg-[#fb7185] border-2 border-black flex items-center justify-center hover:bg-[#f43f5e] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
-                  aria-label="Proyek berikutnya"
+                  aria-label="Next project"
                 >
                   <ChevronRight className="w-4 h-4 stroke-[3]" />
                 </button>
@@ -80,17 +73,13 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
             </div>
           </div>
 
-          {/* Kartu Showcase Proyek */}
+          {/* Project Showcase Card */}
           <div className="border-2 border-black p-4 sm:p-6 bg-white shadow-neo">
-            {/* Wadah Banner Grafis Ilustrasi */}
+            {/* Graphic container */}
             <div className="border-2 border-black bg-[#fb7185] p-3 sm:p-4 mb-6">
               <div className="border-2 border-black bg-white overflow-hidden relative aspect-[16/9] flex items-center justify-center">
-                {/* Ilustrasi Cuaca Bergaya Neo-Brutalist Sesuai Desain */}
                 <div className="relative w-full h-full bg-[#fef08a] flex items-center justify-center overflow-hidden">
-                  {/* Elemen Matahari */}
                   <div className="absolute top-4 left-12 w-24 h-24 rounded-full bg-[#f97316] border-4 border-black" />
-                  
-                  {/* Elemen Grafis Awan */}
                   <div className="relative z-10 bg-[#60a5fa] border-4 border-black rounded-3xl p-6 flex items-center justify-center shadow-neo">
                     <span className="font-mono text-3xl sm:text-5xl font-black tracking-tighter text-black">
                       24°C
@@ -100,7 +89,6 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
               </div>
             </div>
 
-            {/* Rincian Teks Proyek */}
             <h3 className="text-xl font-black tracking-tight text-black uppercase mb-2">
               {currentProject.title}
             </h3>
@@ -109,7 +97,6 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
               {currentProject.description}
             </p>
 
-            {/* Label Tag Teknologi */}
             <div className="flex flex-wrap gap-2 mb-6">
               {currentProject.tags.map((tag) => (
                 <span
@@ -121,15 +108,14 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
               ))}
             </div>
 
-            {/* Tombol Lihat Detail */}
-            <NeoButton size="sm" variant="white" href={currentProject.detailsUrl || "#"}>
+            <NeoButton size="sm" variant="white" to="/projects">
               <span>VIEW DETAILS</span>
               <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
             </NeoButton>
           </div>
         </div>
 
-        {/* Titik Pagination Carousel */}
+        {/* Carousel Pagination Dots */}
         <div className="flex items-center justify-center gap-2 mt-6">
           {projects.map((_, idx) => (
             <button
@@ -139,20 +125,19 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
               className={`w-2.5 h-2.5 rounded-full border border-black transition-all ${
                 idx === currentIndex ? "bg-black w-3 h-3" : "bg-white"
               }`}
-              aria-label={`Buka slide ${idx + 1}`}
+              aria-label={`Go to slide ${idx + 1}`}
             />
           ))}
         </div>
       </div>
 
-      {/* ================= KANAN: SERTIFIKASI ================= */}
+      {/* ================= RIGHT: CERTIFICATIONS ================= */}
       <div id="certifications" className="lg:col-span-4 bg-[#bef264] p-6 sm:p-8 flex flex-col justify-between">
         <div>
           <h2 className="text-lg font-black uppercase tracking-tight text-black mb-6">
             CERTIFICATIONS
           </h2>
 
-          {/* Tumpukan Vertikal Kartu Sertifikasi */}
           <div className="space-y-4">
             {certifications.map((cert) => (
               <div
@@ -172,9 +157,8 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
           </div>
         </div>
 
-        {/* Tombol Lihat Semua Sertifikasi di Bawah */}
         <div className="mt-8">
-          <NeoButton size="sm" variant="white" className="w-full" href="#all-certifications">
+          <NeoButton size="sm" variant="white" className="w-full" to="/certifications">
             <span>VIEW ALL CERTIFICATIONS</span>
             <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
           </NeoButton>

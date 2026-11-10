@@ -1,63 +1,46 @@
 import type { FC } from "react";
-import { Navbar } from "./components/layout/Navbar";
-import { Footer } from "./components/layout/Footer";
-import { HeroSection } from "./components/home/HeroSection";
-import { SkillsBanner } from "./components/home/SkillsBanner";
-import { ProjectsAndCertifications } from "./components/home/ProjectsAndCertifications";
-import { ExperienceAndCta } from "./components/home/ExperienceAndCta";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { RootLayout } from "./components/layout/RootLayout";
 
-// Impor data tiruan yang sesuai dengan interface TypeScript
-import {
-  mockProfile,
-  mockSkills,
-  mockProjects,
-  mockCertifications,
-  mockExperiences,
-} from "./data/mockData";
+// Halaman-halaman rute mandiri
+import { Home } from "./pages/Home";
+import { Projects } from "./pages/Projects";
+import { Certifications } from "./pages/Certifications";
+import { Contact } from "./pages/Contact";
+import { NotFound } from "./pages/NotFound";
 
 /**
- * Komponen Utama (Root App)
+ * Komponen Utama Aplikasi dengan Multi-Page Routing
  * 
- * Mengatur tata letak halaman secara keseluruhan:
- * 1. Kontainer pembungkus dengan bingkai garis tepi kontras (Neo-Brutalist)
- * 2. Navigasi atas yang menempel (Sticky Navbar)
- * 3. Hero Section (Foto profil & bio)
- * 4. Skills Banner (Daftar teknologi horizontal)
- * 5. Projects & Certifications (Carousel proyek & tumpukan sertifikasi)
- * 6. Experience Timeline & Kontak CTA
- * 7. Footer bawah
+ * Cara kerja React Router DOM di sini:
+ * 1. `<BrowserRouter>`: Membungkus seluruh pohon aplikasi untuk mengaktifkan routing HTML5 History API
+ *    (URL bersih seperti `/projects` tanpa tanda pagar `#`).
+ * 2. `<Routes>`: Mengevaluasi seluruh deklarasi `<Route>` anak dan memilih komponen yang cocok dengan URL saat ini.
+ * 3. `<Route path="/" element={<RootLayout />}>`: Menetapkan tata letak induk (parent layout).
+ *    Semua rute bersarang di dalamnya akan dirender ke dalam slot `<Outlet />` pada `RootLayout`.
+ * 4. `<Route index element={<Home />}>`: Rute anak bawaan saat membuka halaman utama (`/`).
+ * 5. `<Route path="*" element={<NotFound />}>`: Rute penangkap semua URL yang tidak terdaftar (halaman 404).
  */
 
 const App: FC = () => {
   return (
-    <div className="min-h-screen bg-neutral-100 flex flex-col justify-between selection:bg-[#bef264] selection:text-black">
-      {/* Pembungkus luar untuk menjaga bingkai khas Neo-Brutalism */}
-      <div className="w-full max-w-7xl mx-auto border-x-2 border-black bg-white flex flex-col my-0 sm:my-6 shadow-neo-lg">
-        {/* Navigasi Atas */}
-        <Navbar />
+    <BrowserRouter>
+      <Routes>
+        {/* Rute Induk dengan pembungkus RootLayout (Navbar + Footer persisten) */}
+        <Route path="/" element={<RootLayout />}>
+          {/* Rute Index (Halaman Beranda: "/") */}
+          <Route index element={<Home />} />
 
-        {/* Bagian Konten Utama */}
-        <main className="flex-1 flex flex-col">
-          {/* 1. Hero */}
-          <HeroSection profile={mockProfile} />
+          {/* Sub-halaman Mandiri */}
+          <Route path="projects" element={<Projects />} />
+          <Route path="certifications" element={<Certifications />} />
+          <Route path="contact" element={<Contact />} />
 
-          {/* 2. Banner Keahlian */}
-          <SkillsBanner skills={mockSkills} />
-
-          {/* 3. Proyek Pilihan & Sertifikasi */}
-          <ProjectsAndCertifications
-            projects={mockProjects}
-            certifications={mockCertifications}
-          />
-
-          {/* 4. Timeline Pengalaman & Ajakan Kerjasama */}
-          <ExperienceAndCta experiences={mockExperiences} />
-        </main>
-
-        {/* Footer Bawah */}
-        <Footer />
-      </div>
-    </div>
+          {/* Rute Wildcard untuk menangani 404 */}
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 };
 

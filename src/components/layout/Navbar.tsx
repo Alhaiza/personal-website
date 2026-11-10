@@ -1,53 +1,66 @@
 import type { FC } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
 /**
- * Komponen Navbar
+ * Komponen Navbar dengan React Router DOM
  * 
- * Tata letak navigasi atas (header) dengan karakteristik Neo-Brutalism:
- * - Lencana logo hijau dengan tulisan `</> JOSHUA DEV`
- * - Menu navigasi di bagian tengah
- * - Tombol aksi ungu "CONTACT ME ->"
- * - Border hitam 2px di bagian bawah
+ * Konsep Penting Routing:
+ * 1. `<Link to="...">`: Menggantikan tag <a> biasa. Mencegah reload halaman penuh dan menukar komponen secara instan di memori browser.
+ * 2. `<NavLink to="...">`: Mirip dengan <Link>, namun menyediakan boolean `isActive` untuk menandai halaman yang sedang aktif.
+ * 3. `useNavigate()`: Hook dari React Router untuk melakukan navigasi secara terprogram lewat kode JavaScript (misal: redirect setelah klik tombol).
  */
 
 export const Navbar: FC = () => {
+  // Hook useNavigate untuk berpindah rute secara terprogram
+  const navigate = useNavigate();
+
+  // Fungsi pembantu untuk memberi gaya visual pada menu yang sedang aktif (active link)
+  const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `transition-colors hover:underline decoration-2 underline-offset-4 ${
+      isActive ? "underline font-black text-black bg-[#bef264] px-2 py-1 border border-black shadow-neo-sm" : "text-black"
+    }`;
+
   return (
     <header className="sticky top-0 z-50 bg-white border-b-2 border-black">
       <div className="w-full flex items-stretch justify-between">
-        {/* Lencana Logo Sisi Kiri */}
-        <div className="bg-[#bef264] border-r-2 border-black px-4 sm:px-6 py-3.5 flex items-center gap-2 font-mono text-xs sm:text-sm font-black tracking-wider uppercase select-none">
+        {/* Lencana Logo - Berpindah kembali ke Beranda ("/") */}
+        <Link
+          to="/"
+          className="bg-[#bef264] border-r-2 border-black px-4 sm:px-6 py-3.5 flex items-center gap-2 font-mono text-xs sm:text-sm font-black tracking-wider uppercase select-none hover:bg-[#a3e635] transition-colors"
+        >
           <span>&lt;/&gt;</span>
           <span>JOSHUA DEV</span>
-        </div>
+        </Link>
 
-        {/* Tautan Navigasi Tengah - Tersembunyi di layar HP kecil, muncul di layar tablet ke atas */}
-        <nav className="hidden md:flex items-center justify-center gap-6 lg:gap-10 text-[11px] font-black uppercase tracking-wider text-black">
-          <a href="#skills" className="hover:underline decoration-2 underline-offset-4">
-            SKILLS
-          </a>
-          <a href="#projects" className="hover:underline decoration-2 underline-offset-4">
+        {/* Menu Navigasi Multi-Halaman di Bagian Tengah */}
+        <nav className="hidden md:flex items-center justify-center gap-6 lg:gap-8 text-[11px] font-black uppercase tracking-wider">
+          <NavLink to="/" end className={getNavLinkClass}>
+            HOME
+          </NavLink>
+          <NavLink to="/projects" className={getNavLinkClass}>
             PROJECTS
-          </a>
-          <a href="#experience" className="hover:underline decoration-2 underline-offset-4">
-            EXPERIENCE
-          </a>
-          <a href="#certifications" className="hover:underline decoration-2 underline-offset-4">
+          </NavLink>
+          <NavLink to="/certifications" className={getNavLinkClass}>
             CERTIFICATIONS
-          </a>
-          <a href="#blog" className="hover:underline decoration-2 underline-offset-4">
-            BLOG
-          </a>
+          </NavLink>
+          <NavLink to="/skills" className={getNavLinkClass}>
+            SKILLS
+          </NavLink>
+          <NavLink to="/experience" className={getNavLinkClass}>
+            EXPERIENCE
+          </NavLink>
         </nav>
 
-        {/* Tombol Aksi Kanan (Call To Action) */}
-        <a
-          href="#contact"
-          className="bg-[#6366f1] hover:bg-[#4f46e5] text-white border-l-2 border-black px-4 sm:px-6 py-3.5 flex items-center gap-2 text-xs font-black tracking-wider uppercase transition-colors select-none"
+        {/* Tombol Aksi Kanan menggunakan navigasi terprogram useNavigate() */}
+        <button
+          type="button"
+          onClick={() => navigate("/contact")}
+          className="bg-[#6366f1] hover:bg-[#4f46e5] text-white border-l-2 border-black px-4 sm:px-6 py-3.5 flex items-center gap-2 text-xs font-black tracking-wider uppercase transition-colors select-none cursor-pointer"
         >
           <span>CONTACT ME</span>
           <ArrowRight className="w-4 h-4" />
-        </a>
+        </button>
       </div>
     </header>
   );
