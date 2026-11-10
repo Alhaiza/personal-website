@@ -1,4 +1,4 @@
-import type { UserProfile, SkillItem, ProjectItem, CertificationItem, ExperienceItem } from "../types";
+import type { UserProfile, SkillItem, ProjectItem, CertificationItem, ExperienceItem, ContactSettings, SiteSettings } from "../types";
 
 /**
  * DATA TIRUAN (MOCK DATA)
@@ -88,3 +88,22 @@ export const mockExperiences: ExperienceItem[] = [
     description: "Assisted in building MVP applications for early-stage startups in rapid-iteration cycles.",
   },
 ];
+
+// Data awal (tiruan) untuk form "Contact Settings" di dashboard admin
+export const mockContactSettings: ContactSettings = {
+  email: "joshua@example.com",
+  location: "Jakarta / Remote Worldwide",
+  github: "https://github.com",
+  linkedin: "https://linkedin.com",
+  twitter: "https://twitter.com",
+  customEmailLink: "mailto:joshua@example.com",
+};
+
+// Data awal (tiruan) untuk form "General Settings" di dashboard admin
+export const mockSiteSettings: SiteSettings = {
+  brandName: "JOSHUA DEV",
+  footerText: "© 2026 Joshua Lapitan. All rights reserved.",
+  ctaHeadline: "LET'S BUILD SOMETHING AMAZING TOGETHER.",
+  ctaBadge: "AVAILABLE NOW",
+  resumeUrl: "/resume.pdf",
+};

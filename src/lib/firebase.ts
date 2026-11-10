@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics, isSupported } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -12,14 +13,16 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-// Inisialisasi Firebase App
+// Initialize Firebase App instance
 export const app = initializeApp(firebaseConfig);
 
-// Inisialisasi Firestore Database
+// Initialize Cloud Firestore Database
 export const db = getFirestore(app);
 
-// Inisialisasi Analytics (hanya aktif jika browser mendukung)
+// Initialize Firebase Authentication
+export const auth = getAuth(app);
+
+// Initialize Firebase Analytics (conditionally if environment supports it)
 export const analyticsPromise = isSupported().then((yes) =>
   yes ? getAnalytics(app) : null
 );
-
