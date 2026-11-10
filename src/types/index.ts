@@ -1,20 +1,20 @@
 /**
- * TYPES DEFINITIONS
+ * DEFINISI TIPE DATA (TYPES)
  * 
- * TypeScript interfaces act as contracts for our data objects.
- * They guarantee that every component receives the exact expected props
- * without runtime bugs or missing values.
+ * Interface TypeScript berfungsi sebagai kontrak bentuk data.
+ * Memastikan setiap komponen menerima properti (props) yang tepat
+ * tanpa ada nilai yang kurang atau salah tipe.
  */
 
-// Skill item for the horizontal skill banner
+// Tipe data untuk item keahlian di banner horizontal
 export interface SkillItem {
   id: string;
   name: string;
-  // Category or icon name identifier
+  // Menentukan jenis ikon teknologi yang akan dirender
   iconType: "react" | "typescript" | "nodejs" | "tailwind" | "mongodb" | "git";
 }
 
-// Project card data structure
+// Tipe data untuk kartu proyek
 export interface ProjectItem {
   id: string;
   title: string;
@@ -25,7 +25,7 @@ export interface ProjectItem {
   detailsUrl?: string;
 }
 
-// Certification card data structure
+// Tipe data untuk kartu sertifikasi
 export interface CertificationItem {
   id: string;
   title: string;
@@ -34,7 +34,7 @@ export interface CertificationItem {
   credentialUrl?: string;
 }
 
-// Career timeline / experience item
+// Tipe data untuk riwayat pengalaman kerja (timeline)
 export interface ExperienceItem {
   id: string;
   role: string;
@@ -43,7 +43,7 @@ export interface ExperienceItem {
   description: string;
 }
 
-// Global user profile settings & social links
+// Tipe data untuk informasi profil pengguna dan tautan sosial media
 export interface UserProfile {
   name: string;
   role: string;
@@ -59,4 +59,3 @@ export interface UserProfile {
     email: string;
   };
 }
-

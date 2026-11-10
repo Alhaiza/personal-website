@@ -3,12 +3,12 @@ import { ArrowRight } from "lucide-react";
 import type { SkillItem } from "../../types";
 
 /**
- * SkillsBanner Component
+ * Komponen SkillsBanner
  * 
- * Displays the horizontal skills strip below the hero:
- * - Purple left badge: "SKILLS ->"
- * - Clean grid with icons and skill names (React, TypeScript, Node.js, Tailwind CSS, MongoDB, Git)
- * - Separated by solid black 2px borders
+ * Menampilkan baris keahlian teknologi di bawah hero:
+ * - Lencana ungu di kiri: "SKILLS ->"
+ * - Grid bersih berisi ikon dan nama teknologi (React, TypeScript, Node.js, Tailwind CSS, MongoDB, Git)
+ * - Dipisahkan dengan garis tepi hitam tegas 2px
  */
 
 interface SkillsBannerProps {
@@ -18,20 +18,20 @@ interface SkillsBannerProps {
 export const SkillsBanner: FC<SkillsBannerProps> = ({ skills }) => {
   return (
     <section id="skills" className="w-full bg-white border-b-2 border-black flex flex-col sm:flex-row items-stretch">
-      {/* Left Purple Badge */}
+      {/* Lencana Ungu Sisi Kiri */}
       <div className="bg-[#6366f1] text-white border-b-2 sm:border-b-0 sm:border-r-2 border-black px-6 py-4 flex items-center justify-between sm:justify-center gap-3 select-none">
         <span className="font-black text-sm uppercase tracking-wider">SKILLS</span>
         <ArrowRight className="w-4 h-4 stroke-[3]" />
       </div>
 
-      {/* Right List of Tech Stack Badges */}
+      {/* Grid Daftar Teknologi */}
       <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 divide-y-2 sm:divide-y-0 sm:divide-x-2 divide-black">
         {skills.map((skill) => (
           <div
             key={skill.id}
             className="flex flex-col items-center justify-center p-4 hover:bg-neutral-50 transition-colors group cursor-default"
           >
-            {/* Minimal SVG Badges for Tech Icons */}
+            {/* Lencana Ikon SVG Minimalis */}
             <div className="w-8 h-8 mb-2 flex items-center justify-center text-black group-hover:scale-110 transition-transform">
               {skill.iconType === "react" && (
                 <svg className="w-7 h-7" viewBox="-11.5 -10.23174 23 20.46348">
@@ -75,7 +75,7 @@ export const SkillsBanner: FC<SkillsBannerProps> = ({ skills }) => {
               )}
             </div>
 
-            {/* Label */}
+            {/* Nama Teknologi */}
             <span className="font-mono text-xs font-bold text-black tracking-tight">
               {skill.name}
             </span>
@@ -85,4 +85,3 @@ export const SkillsBanner: FC<SkillsBannerProps> = ({ skills }) => {
     </section>
   );
 };
-

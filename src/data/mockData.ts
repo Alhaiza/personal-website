@@ -1,11 +1,11 @@
 import type { UserProfile, SkillItem, ProjectItem, CertificationItem, ExperienceItem } from "../types";
 
 /**
- * MOCK DATA
+ * DATA TIRUAN (MOCK DATA)
  * 
- * Provides realistic initial content based strictly on the provided design.
- * This decouples UI slicing from backend integrations (like Firestore),
- * allowing you to test UI rendering, typography, and responsive layouts immediately.
+ * Menyediakan data awal yang realistis sesuai desain UI.
+ * Memisahkan pengerjaan tampilan (UI) dari backend (seperti Firestore),
+ * sehingga Anda bisa langsung menguji tampilan, teks, dan tata letak responsif.
  */
 
 export const mockProfile: UserProfile = {
@@ -88,4 +88,3 @@ export const mockExperiences: ExperienceItem[] = [
     description: "Assisted in building MVP applications for early-stage startups in rapid-iteration cycles.",
   },
 ];
-
