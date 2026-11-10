@@ -1,8 +1,9 @@
 import { useState, type ChangeEvent, type FC, type FormEvent } from "react";
-import { ArrowUp, ArrowDown, Plus, Trash2, Upload, Code2, CheckCircle2, Star } from "lucide-react";
+import { ArrowUp, ArrowDown, Plus, Trash2, Upload, Code2, CheckCircle2, Star, Edit3 } from "lucide-react";
 import { useSiteContent } from "../../context/siteContentContext";
 import { useToast } from "../common/toastContext";
 import { ConfirmModal } from "../common/ConfirmModal";
+import { EditSkillModal } from "./EditSkillModal";
 import { deleteSkill } from "../../services/firestoreService";
 import type { SkillItem } from "../../types";
 
@@ -58,11 +59,16 @@ export const SkillsManager: FC = () => {
     skillName: "",
   });
 
+  // State untuk modal edit skill
+  const [editingSkill, setEditingSkill] = useState<SkillItem | null>(null);
+
   const [saving, setSaving] = useState(false);
 
-  // =========================================================================
-  // CHEATSHEET 1: FILE READER UNTUK EKSTRAKSI MARKUP SVG DARI FILE LOKAL
-  // =========================================================================
+  // Simpan hasil pembaruan skill dari modal edit
+  const handleSaveEditedSkill = (updated: SkillItem) => {
+    const nextSkills = skills.map((s) => (s.id === updated.id ? updated : s));
+    updateContent({ skills: nextSkills });
+  };
   // Handler saat admin memilih/upload file .svg dari laptop (Opsi 2)
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -546,14 +552,25 @@ export const SkillsManager: FC = () => {
                     </button>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => promptDelete(skill.id, skill.name)}
-                    className="px-3 py-1.5 bg-[#fb7185] hover:bg-[#f43f5e] border-2 border-black text-xs font-black uppercase shadow-neo-sm flex items-center gap-1.5 cursor-pointer active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>DELETE</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingSkill(skill)}
+                      className="px-2.5 py-1.5 bg-[#bef264] hover:bg-[#a3e635] border-2 border-black text-xs font-black uppercase shadow-neo-sm flex items-center gap-1 cursor-pointer active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                      <span>EDIT</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => promptDelete(skill.id, skill.name)}
+                      className="px-3 py-1.5 bg-[#fb7185] hover:bg-[#f43f5e] border-2 border-black text-xs font-black uppercase shadow-neo-sm flex items-center gap-1.5 cursor-pointer active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>DELETE</span>
+                    </button>
+                  </div>
                 </div>
               </li>
             ))}
@@ -570,6 +587,16 @@ export const SkillsManager: FC = () => {
         cancelLabel="CANCEL"
         onConfirm={handleConfirmDelete}
         onCancel={() => setConfirmModal({ isOpen: false, skillId: "", skillName: "" })}
+      />
+
+      {/* Neo-Brutalism Modal Edit Skill */}
+      <EditSkillModal
+        skill={editingSkill}
+        isOpen={Boolean(editingSkill)}
+        onClose={() => setEditingSkill(null)}
+        onSave={handleSaveEditedSkill}
+        featuredLimit={FEATURED_LIMIT}
+        currentFeaturedCount={featuredCount}
       />
     </div>
   );

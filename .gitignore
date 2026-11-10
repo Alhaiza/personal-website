@@ -27,6 +27,6 @@ dist-ssr
 *.sln
 *.sw?
 
-# Direktori unggahan aset lokal (Aset biner tidak dilacak di Git)
-public/uploads/*
-!public/uploads/.gitkeep
+# Direktori unggahan aset lokal (Aset biner dilacak agar ikut ter-deploy ke Firebase Hosting)
+!public/uploads/
+

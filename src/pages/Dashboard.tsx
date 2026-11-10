@@ -10,6 +10,7 @@ import {
   Menu,
   X,
   Star,
+  Edit3,
 } from "lucide-react";
 import { useAuth } from "../context/authContext";
 import { useSiteContent } from "../context/siteContentContext";
@@ -21,6 +22,9 @@ import { SkillsManager } from "../components/admin/SkillsManager";
 import { SiteSettingsForm } from "../components/admin/SiteSettingsForm";
 import { AdminSidebar } from "../components/admin/AdminSidebar";
 import { AssetInput } from "../components/admin/AssetInput";
+import { EditProjectModal } from "../components/admin/EditProjectModal";
+import { EditCertificationModal } from "../components/admin/EditCertificationModal";
+import { EditExperienceModal } from "../components/admin/EditExperienceModal";
 import { isAdminTab, type AdminTab } from "../components/admin/adminTabs";
 import {
   deleteProject,
@@ -134,6 +138,11 @@ export const Dashboard: FC = () => {
   // State pesan kontak dari Firestore
   const [messages, setMessages] = useState<ContactMessage[]>([]);
 
+  // State untuk modal edit item
+  const [editingProject, setEditingProject] = useState<ProjectItem | null>(null);
+  const [editingCert, setEditingCert] = useState<CertificationItem | null>(null);
+  const [editingExp, setEditingExp] = useState<ExperienceItem | null>(null);
+
   // Muat pesan kontak dari Firestore saat admin membuka dashboard
   useEffect(() => {
     let isMounted = true;
@@ -246,6 +255,12 @@ export const Dashboard: FC = () => {
     }
   };
 
+  // Simpan hasil pembaruan proyek dari modal edit
+  const handleSaveEditedProject = (updated: ProjectItem) => {
+    const nextProjects = content.projects.map((p) => (p.id === updated.id ? updated : p));
+    updateContent({ projects: nextProjects });
+  };
+
   // =========================================================================
   // CHEATSHEET & PEMBELAJARAN: PENGHAPUSAN AMAN DOKUMEN & BERKAS PROYEK
   // =========================================================================
@@ -347,6 +362,12 @@ export const Dashboard: FC = () => {
     }
   };
 
+  // Simpan hasil pembaruan sertifikasi dari modal edit
+  const handleSaveEditedCert = (updated: CertificationItem) => {
+    const nextCerts = content.certifications.map((c) => (c.id === updated.id ? updated : c));
+    updateContent({ certifications: nextCerts });
+  };
+
   // =========================================================================
   // CHEATSHEET & PEMBELAJARAN: PENGHAPUSAN DOKUMEN & BERKAS SERTIFIKASI
   // =========================================================================
@@ -399,6 +420,12 @@ export const Dashboard: FC = () => {
     } catch (err: unknown) {
       toast.error((err as Error).message || "Failed to add experience");
     }
+  };
+
+  // Simpan hasil pembaruan pengalaman dari modal edit
+  const handleSaveEditedExp = (updated: ExperienceItem) => {
+    const nextExps = content.experiences.map((e) => (e.id === updated.id ? updated : e));
+    updateContent({ experiences: nextExps });
   };
 
   // Hapus Pengalaman dari Firestore menggunakan Custom Neo-Brutalism Modal
@@ -819,7 +846,15 @@ export const Dashboard: FC = () => {
                           ))}
                         </div>
                       </div>
-                      <div className="mt-4 pt-3 border-t border-black flex justify-end">
+                      <div className="mt-4 pt-3 border-t border-black flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditingProject(proj)}
+                          className="px-3 py-1 bg-[#bef264] hover:bg-[#a3e635] border border-black text-xs font-black tracking-wider uppercase flex items-center gap-1.5 shadow-neo-sm cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>EDIT</span>
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteProject(proj.id, proj.title, proj.imageUrl)}
@@ -1032,13 +1067,22 @@ export const Dashboard: FC = () => {
                           </a>
                         )}
                       </div>
-                      <div className="mt-4 pt-3 border-t border-black flex justify-end">
+                      <div className="mt-4 pt-3 border-t border-black flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditingCert(c)}
+                          className="px-2.5 py-1 bg-white border border-black text-xs font-black uppercase shadow-neo-sm hover:bg-neutral-100 flex items-center gap-1 cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>EDIT</span>
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteCert(c.id, c.title, c.imageUrl)}
-                          className="px-2.5 py-1 bg-white border border-black text-xs font-bold shadow-neo-sm hover:bg-neutral-100 cursor-pointer"
+                          className="px-2.5 py-1 bg-[#fb7185] border border-black text-xs font-black uppercase shadow-neo-sm hover:bg-[#f43f5e] flex items-center gap-1 cursor-pointer"
                         >
-                          DELETE
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>DELETE</span>
                         </button>
                       </div>
                     </div>
@@ -1121,13 +1165,24 @@ export const Dashboard: FC = () => {
                       <p className="font-mono text-xs text-neutral-500 font-bold">{exp.period}</p>
                       <p className="font-mono text-xs text-neutral-700 mt-1 max-w-xl">{exp.description}</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteExp(exp.id, exp.role)}
-                      className="px-2.5 py-1 bg-[#fb7185] border border-black text-xs font-bold shadow-neo-sm hover:bg-[#f43f5e] cursor-pointer"
-                    >
-                      DELETE
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setEditingExp(exp)}
+                        className="px-2.5 py-1 bg-[#bef264] border border-black text-xs font-black uppercase shadow-neo-sm hover:bg-[#a3e635] flex items-center gap-1 cursor-pointer"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                        <span>EDIT</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteExp(exp.id, exp.role)}
+                        className="px-2.5 py-1 bg-[#fb7185] border border-black text-xs font-black uppercase shadow-neo-sm hover:bg-[#f43f5e] flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>DELETE</span>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1205,6 +1260,34 @@ export const Dashboard: FC = () => {
         cancelLabel={confirmModal.cancelLabel}
         onConfirm={confirmModal.onConfirm}
         onCancel={closeConfirmModal}
+      />
+
+      {/* Neo-Brutalism Modal Edit Proyek */}
+      <EditProjectModal
+        project={editingProject}
+        isOpen={Boolean(editingProject)}
+        onClose={() => setEditingProject(null)}
+        onSave={handleSaveEditedProject}
+        featuredLimit={PROJECT_FEATURED_LIMIT}
+        currentFeaturedCount={featuredProjectsCount}
+      />
+
+      {/* Neo-Brutalism Modal Edit Sertifikasi */}
+      <EditCertificationModal
+        certification={editingCert}
+        isOpen={Boolean(editingCert)}
+        onClose={() => setEditingCert(null)}
+        onSave={handleSaveEditedCert}
+        featuredLimit={CERT_FEATURED_LIMIT}
+        currentFeaturedCount={featuredCertsCount}
+      />
+
+      {/* Neo-Brutalism Modal Edit Riwayat Karier */}
+      <EditExperienceModal
+        experience={editingExp}
+        isOpen={Boolean(editingExp)}
+        onClose={() => setEditingExp(null)}
+        onSave={handleSaveEditedExp}
       />
     </div>
   );
