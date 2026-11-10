@@ -1,0 +1,340 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Models
+    // ===============================================================
+    //
+    // Collection: profile
+    // Document ID: {docId} (e.g., 'general')
+    // Fields:
+    //   - name: string (required, 1-100 chars)
+    //   - role: string (required, 1-150 chars)
+    //   - bio: string (required, 1-2000 chars)
+    //   - codeSnippet: map (required, keys: language, code)
+    //       * language: string (required, 1-50 chars)
+    //       * code: string (required, 1-5000 chars)
+    //   - updatedAt: timestamp (optional)
+    //
+    // Collection: settings
+    // Document ID: {docId} (e.g., 'general')
+    // Fields:
+    //   - profileImageUrl: string (required, 0-1000 chars)
+    //   - resumeUrl: string (required, 0-1000 chars)
+    //   - brandName: string (required, 1-100 chars)
+    //   - footerText: string (required, 1-300 chars)
+    //   - ctaHeadline: string (required, 1-300 chars)
+    //   - ctaBadge: string (required, 1-100 chars)
+    //   - updatedAt: timestamp (optional)
+    //
+    // Collection: contact
+    // Document ID: {docId} (e.g., 'general')
+    // Fields:
+    //   - email: string (required, valid email or empty, 0-200 chars)
+    //   - location: string (required, 0-200 chars)
+    //   - github: string (required, 0-500 chars)
+    //   - linkedin: string (required, 0-500 chars)
+    //   - twitter: string (required, 0-500 chars)
+    //   - customEmailLink: string (required, 0-500 chars)
+    //   - updatedAt: timestamp (optional)
+    //
+    // Collection: skills
+    // Document ID: {docId} (auto-id or custom id)
+    // Fields:
+    //   - name: string (required, 1-100 chars)
+    //   - iconType: string (required, valid icon name: react, typescript, nodejs, tailwind, mongodb, git)
+    //   - order: number (optional)
+    //   - createdAt: timestamp (optional)
+    //   - updatedAt: timestamp (optional)
+    //
+    // Collection: projects
+    // Document ID: {docId} (auto-id)
+    // Fields:
+    //   - title: string (required, 1-200 chars)
+    //   - description: string (required, 1-5000 chars)
+    //   - tags: list of strings (required, <= 20 items, each string <= 50 chars)
+    //   - imageUrl: string (required, 1-1000 chars)
+    //   - projectUrl: string (optional, 0-1000 chars)
+    //   - githubUrl: string (optional, 0-1000 chars)
+    //   - featured: bool (optional)
+    //   - order: number (optional)
+    //   - createdAt: timestamp (optional, immutable on update)
+    //   - updatedAt: timestamp (optional)
+    //
+    // Collection: certifications
+    // Document ID: {docId} (auto-id)
+    // Fields:
+    //   - title: string (required, 1-200 chars)
+    //   - issuer: string (optional, 0-200 chars)
+    //   - description: string (optional, 0-2000 chars)
+    //   - credentialUrl: string (optional, 0-1000 chars)
+    //   - imageUrl: string (optional, 0-1000 chars)
+    //   - order: number (optional)
+    //   - createdAt: timestamp (optional, immutable on update)
+    //   - updatedAt: timestamp (optional)
+    //
+    // Collection: experiences
+    // Document ID: {docId} (auto-id)
+    // Fields:
+    //   - role: string (required, 1-200 chars)
+    //   - company: string (required, 1-200 chars)
+    //   - period: string (required, 1-100 chars)
+    //   - description: string (required, 1-5000 chars)
+    //   - order: number (optional)
+    //   - createdAt: timestamp (optional, immutable on update)
+    //   - updatedAt: timestamp (optional)
+    //
+    // Collection: messages
+    // Document ID: {docId} (auto-id)
+    // Fields:
+    //   - name: string (required, 1-100 chars)
+    //   - email: string (required, valid email, 3-200 chars)
+    //   - subject: string (required, 1-200 chars)
+    //   - message: string (required, 1-5000 chars)
+    //   - status: string (required on create: 'unread', allowed in: ['unread', 'read', 'archived'])
+    //   - createdAt: timestamp (required on create, recent, immutable on update)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if the request is from an authenticated admin/user
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if optional or required field exists and is valid string length
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    // Check optional string field
+    function isValidOptionalString(data, field, minLen, maxLen) {
+      return !(field in data) || isValidString(data[field], minLen, maxLen);
+    }
+
+    // Check optional number field
+    function isValidOptionalNumber(data, field) {
+      return !(field in data) || data[field] is number;
+    }
+
+    // Check optional timestamp field
+    function isValidOptionalTimestamp(data, field) {
+      return !(field in data) || data[field] is timestamp;
+    }
+
+    // Check optional boolean field
+    function isValidOptionalBool(data, field) {
+      return !(field in data) || data[field] is bool;
+    }
+
+    // Basic email format check
+    function isValidEmail(email) {
+      return email is string &&
+        email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    // Check if field is unchanged on update
+    function isFieldUnchanged(field) {
+      return !(field in request.resource.data) ||
+        (field in resource.data && request.resource.data[field] == resource.data[field]);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidProfile(data) {
+      return data.keys().hasAll(['name', 'role', 'bio', 'codeSnippet']) &&
+        data.keys().hasOnly(['name', 'role', 'bio', 'codeSnippet', 'updatedAt']) &&
+        isValidString(data.name, 1, 100) &&
+        isValidString(data.role, 1, 150) &&
+        isValidString(data.bio, 1, 2000) &&
+        data.codeSnippet is map &&
+        data.codeSnippet.keys().hasAll(['language', 'code']) &&
+        data.codeSnippet.keys().hasOnly(['language', 'code']) &&
+        isValidString(data.codeSnippet.language, 1, 50) &&
+        isValidString(data.codeSnippet.code, 1, 5000) &&
+        isValidOptionalTimestamp(data, 'updatedAt');
+    }
+
+    function isValidSettings(data) {
+      return data.keys().hasAll(['profileImageUrl', 'resumeUrl', 'brandName', 'footerText', 'ctaHeadline', 'ctaBadge']) &&
+        data.keys().hasOnly(['profileImageUrl', 'resumeUrl', 'brandName', 'footerText', 'ctaHeadline', 'ctaBadge', 'updatedAt']) &&
+        isValidString(data.profileImageUrl, 0, 1000) &&
+        isValidString(data.resumeUrl, 0, 1000) &&
+        isValidString(data.brandName, 1, 100) &&
+        isValidString(data.footerText, 1, 300) &&
+        isValidString(data.ctaHeadline, 1, 300) &&
+        isValidString(data.ctaBadge, 1, 100) &&
+        isValidOptionalTimestamp(data, 'updatedAt');
+    }
+
+    function isValidContact(data) {
+      return data.keys().hasAll(['email', 'location', 'github', 'linkedin', 'twitter', 'customEmailLink']) &&
+        data.keys().hasOnly(['email', 'location', 'github', 'linkedin', 'twitter', 'customEmailLink', 'updatedAt']) &&
+        isValidString(data.email, 0, 200) &&
+        (data.email == '' || isValidEmail(data.email)) &&
+        isValidString(data.location, 0, 200) &&
+        isValidString(data.github, 0, 500) &&
+        isValidString(data.linkedin, 0, 500) &&
+        isValidString(data.twitter, 0, 500) &&
+        isValidString(data.customEmailLink, 0, 500) &&
+        isValidOptionalTimestamp(data, 'updatedAt');
+    }
+
+    function isValidSkill(data) {
+      return data.keys().hasAll(['name', 'iconType']) &&
+        data.keys().hasOnly(['name', 'iconType', 'order', 'createdAt', 'updatedAt']) &&
+        isValidString(data.name, 1, 100) &&
+        data.iconType in ['react', 'typescript', 'nodejs', 'tailwind', 'mongodb', 'git'] &&
+        isValidOptionalNumber(data, 'order') &&
+        isValidOptionalTimestamp(data, 'createdAt') &&
+        isValidOptionalTimestamp(data, 'updatedAt');
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasAll(['title', 'description', 'tags', 'imageUrl']) &&
+        data.keys().hasOnly(['title', 'description', 'tags', 'imageUrl', 'projectUrl', 'githubUrl', 'featured', 'order', 'createdAt', 'updatedAt']) &&
+        isValidString(data.title, 1, 200) &&
+        isValidString(data.description, 1, 5000) &&
+        isValidString(data.imageUrl, 1, 1000) &&
+        data.tags is list &&
+        data.tags.size() <= 20 &&
+        isValidOptionalString(data, 'projectUrl', 0, 1000) &&
+        isValidOptionalString(data, 'githubUrl', 0, 1000) &&
+        isValidOptionalBool(data, 'featured') &&
+        isValidOptionalNumber(data, 'order') &&
+        isValidOptionalTimestamp(data, 'createdAt') &&
+        isValidOptionalTimestamp(data, 'updatedAt');
+    }
+
+    function isValidCertification(data) {
+      return data.keys().hasAll(['title']) &&
+        data.keys().hasOnly(['title', 'issuer', 'description', 'credentialUrl', 'imageUrl', 'order', 'createdAt', 'updatedAt']) &&
+        isValidString(data.title, 1, 200) &&
+        isValidOptionalString(data, 'issuer', 0, 200) &&
+        isValidOptionalString(data, 'description', 0, 2000) &&
+        isValidOptionalString(data, 'credentialUrl', 0, 1000) &&
+        isValidOptionalString(data, 'imageUrl', 0, 1000) &&
+        isValidOptionalNumber(data, 'order') &&
+        isValidOptionalTimestamp(data, 'createdAt') &&
+        isValidOptionalTimestamp(data, 'updatedAt');
+    }
+
+    function isValidExperience(data) {
+      return data.keys().hasAll(['role', 'company', 'period', 'description']) &&
+        data.keys().hasOnly(['role', 'company', 'period', 'description', 'order', 'createdAt', 'updatedAt']) &&
+        isValidString(data.role, 1, 200) &&
+        isValidString(data.company, 1, 200) &&
+        isValidString(data.period, 1, 100) &&
+        isValidString(data.description, 1, 5000) &&
+        isValidOptionalNumber(data, 'order') &&
+        isValidOptionalTimestamp(data, 'createdAt') &&
+        isValidOptionalTimestamp(data, 'updatedAt');
+    }
+
+    function isValidIncomingMessage(data) {
+      return data.keys().hasAll(['name', 'email', 'subject', 'message', 'status', 'createdAt']) &&
+        data.keys().hasOnly(['name', 'email', 'subject', 'message', 'status', 'createdAt']) &&
+        isValidString(data.name, 1, 100) &&
+        isValidEmail(data.email) &&
+        isValidString(data.email, 3, 200) &&
+        isValidString(data.subject, 1, 200) &&
+        isValidString(data.message, 1, 5000) &&
+        data.status == 'unread' &&
+        data.createdAt is timestamp &&
+        data.createdAt <= request.time &&
+        data.createdAt >= request.time - duration.value(5, 'm');
+    }
+
+    function isValidUpdatedMessage(data) {
+      return data.keys().hasAll(['name', 'email', 'subject', 'message', 'status', 'createdAt']) &&
+        data.keys().hasOnly(['name', 'email', 'subject', 'message', 'status', 'createdAt', 'updatedAt']) &&
+        isValidString(data.name, 1, 100) &&
+        isValidEmail(data.email) &&
+        isValidString(data.email, 3, 200) &&
+        isValidString(data.subject, 1, 200) &&
+        isValidString(data.message, 1, 5000) &&
+        data.status in ['unread', 'read', 'archived'] &&
+        isValidOptionalTimestamp(data, 'updatedAt');
+    }
+
+    // ===============================================================
+    // Rules Definition
+    // ===============================================================
+
+    // 1. Site Settings
+    match /settings/{docId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidSettings(request.resource.data);
+      allow update: if isAuthenticated() && isValidSettings(request.resource.data);
+      allow delete: if isAuthenticated();
+    }
+
+    // 2. Profile Information
+    match /profile/{docId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidProfile(request.resource.data);
+      allow update: if isAuthenticated() && isValidProfile(request.resource.data);
+      allow delete: if isAuthenticated();
+    }
+
+    // 3. Contact Settings
+    match /contact/{docId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidContact(request.resource.data);
+      allow update: if isAuthenticated() && isValidContact(request.resource.data);
+      allow delete: if isAuthenticated();
+    }
+
+    // 4. Skills Collection
+    match /skills/{skillId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidSkill(request.resource.data);
+      allow update: if isAuthenticated() && isValidSkill(request.resource.data) && isFieldUnchanged('createdAt');
+      allow delete: if isAuthenticated();
+    }
+
+    // 5. Projects Collection
+    match /projects/{projectId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidProject(request.resource.data);
+      allow update: if isAuthenticated() && isValidProject(request.resource.data) && isFieldUnchanged('createdAt');
+      allow delete: if isAuthenticated();
+    }
+
+    // 6. Certifications Collection
+    match /certifications/{certId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidCertification(request.resource.data);
+      allow update: if isAuthenticated() && isValidCertification(request.resource.data) && isFieldUnchanged('createdAt');
+      allow delete: if isAuthenticated();
+    }
+
+    // 7. Experiences Collection
+    match /experiences/{expId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidExperience(request.resource.data);
+      allow update: if isAuthenticated() && isValidExperience(request.resource.data) && isFieldUnchanged('createdAt');
+      allow delete: if isAuthenticated();
+    }
+
+    // 8. Contact Messages Collection
+    // Public visitors can submit inquiry messages, but only authenticated admin can read, modify, or delete them.
+    match /messages/{messageId} {
+      allow create: if isValidIncomingMessage(request.resource.data);
+      allow read, delete: if isAuthenticated();
+      allow update: if isAuthenticated() && isValidUpdatedMessage(request.resource.data) && isFieldUnchanged('createdAt');
+    }
+
+    // 9. Default Deny Fallback
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

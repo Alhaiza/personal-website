@@ -1,4 +1,4 @@
-import { useState, type FC, type FormEvent } from "react";
+import { useState, useEffect, type FC, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   Mail,
@@ -21,6 +21,13 @@ import { SiteSettingsForm } from "../components/admin/SiteSettingsForm";
 import { AdminSidebar } from "../components/admin/AdminSidebar";
 import { AssetInput } from "../components/admin/AssetInput";
 import { isAdminTab, type AdminTab } from "../components/admin/adminTabs";
+import {
+  deleteProject,
+  deleteCertification,
+  deleteExperience,
+  getContactMessages,
+  deleteContactMessage,
+} from "../services/firestoreService";
 import type {
   UserProfile,
   ProjectItem,
@@ -32,15 +39,9 @@ import type {
 /**
  * Komponen Admin Dashboard (`/dashboard`)
  * 
- * Terintegrasi penuh dengan `SiteContentContext` (dan dipersistensikan ke localStorage):
- * - Profile Info: Live editor untuk nama, role (SOFTWARE DEVELOPER di Hero), bio, dan kode snippet.
- * - Projects Manager: CRUD proyek dengan cover image, tag, status featured, live demo URL, dan repo URL.
- * - Certifications Manager: Tambah & hapus sertifikasi lengkap dengan thumbnail & tautan verifikasi.
- * - Experience Manager: Kelola rekam jejak karier.
- * - Skills Manager: Kelola teknologi, ikon, dan urutan.
- * - General Settings: Kelola brand, footer, CTA headline, badge, foto profil, dan URL resume.
- * - Contact & Social: Kelola email, alamat/lokasi, dan semua tautan sosial media.
- * - Messages: Inbox pesan kontak dari pengunjung.
+ * Terintegrasi penuh dengan Cloud Firestore melalui `SiteContentContext` & `firestoreService`:
+ * - Pembaruan profile, project, certs, experience, skills, dan settings tersimpan langsung ke Firestore
+ * - Inbox pesan membaca data langsung dari koleksi `messages` Firestore
  */
 
 export const Dashboard: FC = () => {
@@ -90,8 +91,19 @@ export const Dashboard: FC = () => {
     description: "",
   });
 
-  // State pesan kontak
+  // State pesan kontak dari Firestore
   const [messages, setMessages] = useState<ContactMessage[]>([]);
+
+  // Muat pesan kontak dari Firestore saat admin membuka dashboard
+  useEffect(() => {
+    let isMounted = true;
+    getContactMessages().then((data) => {
+      if (isMounted) setMessages(data);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const showNotification = (text: string, type: "success" | "error" = "success") => {
     setFeedback({ type, text });
@@ -103,14 +115,14 @@ export const Dashboard: FC = () => {
     navigate("/login", { replace: true });
   };
 
-  // Simpan Profile
+  // Simpan Profile ke Firestore
   const handleSaveProfile = (e: FormEvent) => {
     e.preventDefault();
     updateContent({ profile: profileForm });
-    showNotification("Profil berhasil diperbarui dan langsung tampil di Hero!");
+    showNotification("Profil berhasil diperbarui dan tersimpan di Cloud Firestore!");
   };
 
-  // Tambah Proyek
+  // Tambah Proyek ke Firestore
   const handleAddProject = (e: FormEvent) => {
     e.preventDefault();
     if (!newProject.title.trim()) return;
@@ -127,7 +139,7 @@ export const Dashboard: FC = () => {
     };
 
     updateContent({ projects: [project, ...content.projects] });
-    showNotification("Proyek baru berhasil ditambahkan!");
+    showNotification("Proyek baru berhasil dibuat dan disimpan di Firestore!");
 
     setNewProject({
       title: "",
@@ -141,14 +153,19 @@ export const Dashboard: FC = () => {
     setTagsInput("");
   };
 
-  // Hapus Proyek
-  const handleDeleteProject = (id: string) => {
-    if (!confirm("Hapus proyek ini dari portofolio?")) return;
-    updateContent({ projects: content.projects.filter((p) => p.id !== id) });
-    showNotification("Proyek berhasil dihapus.");
+  // Hapus Proyek dari Firestore
+  const handleDeleteProject = async (id: string) => {
+    if (!confirm("Hapus proyek ini dari portofolio dan database?")) return;
+    try {
+      await deleteProject(id);
+      updateContent({ projects: content.projects.filter((p) => p.id !== id) });
+      showNotification("Proyek berhasil dihapus dari Cloud Firestore.");
+    } catch (err: unknown) {
+      showNotification((err as Error).message || "Gagal menghapus proyek", "error");
+    }
   };
 
-  // Tambah Sertifikasi
+  // Tambah Sertifikasi ke Firestore
   const handleAddCert = (e: FormEvent) => {
     e.preventDefault();
     if (!newCert.title.trim()) return;
@@ -159,7 +176,7 @@ export const Dashboard: FC = () => {
     };
 
     updateContent({ certifications: [...content.certifications, cert] });
-    showNotification("Sertifikasi baru berhasil ditambahkan!");
+    showNotification("Sertifikasi baru berhasil disimpan di Firestore!");
 
     setNewCert({
       title: "",
@@ -170,14 +187,19 @@ export const Dashboard: FC = () => {
     });
   };
 
-  // Hapus Sertifikasi
-  const handleDeleteCert = (id: string) => {
-    if (!confirm("Hapus sertifikasi ini?")) return;
-    updateContent({ certifications: content.certifications.filter((c) => c.id !== id) });
-    showNotification("Sertifikasi berhasil dihapus.");
+  // Hapus Sertifikasi dari Firestore
+  const handleDeleteCert = async (id: string) => {
+    if (!confirm("Hapus sertifikasi ini dari database?")) return;
+    try {
+      await deleteCertification(id);
+      updateContent({ certifications: content.certifications.filter((c) => c.id !== id) });
+      showNotification("Sertifikasi berhasil dihapus dari Cloud Firestore.");
+    } catch (err: unknown) {
+      showNotification((err as Error).message || "Gagal menghapus sertifikasi", "error");
+    }
   };
 
-  // Tambah Pengalaman
+  // Tambah Pengalaman ke Firestore
   const handleAddExp = (e: FormEvent) => {
     e.preventDefault();
     if (!newExp.role.trim() || !newExp.company.trim()) return;
@@ -188,7 +210,7 @@ export const Dashboard: FC = () => {
     };
 
     updateContent({ experiences: [exp, ...content.experiences] });
-    showNotification("Pengalaman baru berhasil ditambahkan!");
+    showNotification("Pengalaman baru berhasil disimpan di Firestore!");
 
     setNewExp({
       role: "",
@@ -198,11 +220,28 @@ export const Dashboard: FC = () => {
     });
   };
 
-  // Hapus Pengalaman
-  const handleDeleteExp = (id: string) => {
-    if (!confirm("Hapus riwayat pengalaman ini?")) return;
-    updateContent({ experiences: content.experiences.filter((e) => e.id !== id) });
-    showNotification("Pengalaman berhasil dihapus.");
+  // Hapus Pengalaman dari Firestore
+  const handleDeleteExp = async (id: string) => {
+    if (!confirm("Hapus riwayat pengalaman ini dari database?")) return;
+    try {
+      await deleteExperience(id);
+      updateContent({ experiences: content.experiences.filter((e) => e.id !== id) });
+      showNotification("Pengalaman berhasil dihapus dari Cloud Firestore.");
+    } catch (err: unknown) {
+      showNotification((err as Error).message || "Gagal menghapus pengalaman", "error");
+    }
+  };
+
+  // Hapus Pesan Kontak dari Firestore
+  const handleDeleteMsg = async (id?: string) => {
+    if (!id || !confirm("Hapus pesan ini dari inbox database?")) return;
+    try {
+      await deleteContactMessage(id);
+      setMessages(messages.filter((m) => m.id !== id));
+      showNotification("Pesan berhasil dihapus dari database.");
+    } catch (err: unknown) {
+      showNotification((err as Error).message || "Gagal menghapus pesan", "error");
+    }
   };
 
   return (
@@ -295,7 +334,7 @@ export const Dashboard: FC = () => {
                   EDIT PROFILE INFO
                 </h2>
                 <p className="font-mono text-xs text-neutral-600 mt-1">
-                  Atur sapaan nama, judul profesi di Hero, dan bio ringkas yang tampil di publik.
+                  Atur sapaan nama, judul profesi di Hero, dan bio ringkas yang disimpan ke Cloud Firestore.
                 </p>
               </div>
 
@@ -367,7 +406,7 @@ export const Dashboard: FC = () => {
 
                 <NeoButton type="submit" variant="lime" size="md">
                   <Save className="w-4 h-4 stroke-[2.5]" />
-                  <span>SIMPAN PERUBAHAN PROFIL</span>
+                  <span>SIMPAN KE FIRESTORE</span>
                 </NeoButton>
               </form>
             </div>
@@ -381,7 +420,7 @@ export const Dashboard: FC = () => {
                   PROJECTS MANAGER
                 </h2>
                 <p className="font-mono text-xs text-neutral-600 mt-1">
-                  Kelola kartu portofolio proyek lengkap dengan cover image, tag, tautan live demo, GitHub repo, dan toggle featured.
+                  Kelola kartu portofolio proyek yang disinkronkan ke koleksi `projects` Cloud Firestore.
                 </p>
               </div>
 
@@ -553,7 +592,7 @@ export const Dashboard: FC = () => {
                   CERTIFICATIONS MANAGER
                 </h2>
                 <p className="font-mono text-xs text-neutral-600 mt-1">
-                  Kelola sertifikasi lengkap dengan nama, penerbit, deskripsi, thumbnail, dan link verifikasi badge.
+                  Kelola sertifikasi yang disinkronkan ke koleksi `certifications` Cloud Firestore.
                 </p>
               </div>
 
@@ -669,7 +708,7 @@ export const Dashboard: FC = () => {
                   CAREER EXPERIENCES MANAGER
                 </h2>
                 <p className="font-mono text-xs text-neutral-600 mt-1">
-                  Kelola riwayat karier yang tampil di timeline halaman utama dan /experience.
+                  Kelola riwayat karier yang disinkronkan ke koleksi `experiences` Cloud Firestore.
                 </p>
               </div>
 
@@ -764,7 +803,7 @@ export const Dashboard: FC = () => {
                   INQUIRY INBOX ({messages.length})
                 </h2>
                 <p className="font-mono text-xs text-neutral-600 mt-1">
-                  Pesan yang dikirimkan pengunjung dari halaman publik /contact.
+                  Pesan yang dikirimkan pengunjung dari halaman publik /contact yang tersimpan di Cloud Firestore.
                 </p>
               </div>
 
@@ -794,7 +833,7 @@ export const Dashboard: FC = () => {
                       <div className="mt-4 flex justify-end">
                         <button
                           type="button"
-                          onClick={() => setMessages(messages.filter((m) => m.id !== msg.id))}
+                          onClick={() => handleDeleteMsg(msg.id)}
                           className="px-3 py-1 bg-[#fb7185] hover:bg-[#f43f5e] border border-black text-xs font-black uppercase shadow-neo-sm cursor-pointer"
                         >
                           DELETE INQUIRY

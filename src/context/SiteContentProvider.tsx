@@ -1,112 +1,112 @@
 import { useEffect, useRef, useState, type FC, type ReactNode } from "react";
 import { mockSiteContent } from "../data/mockData";
-import type {
-  CertificationItem,
-  ContactSettings,
-  ExperienceItem,
-  ProjectItem,
-  SiteContent,
-  SiteSettings,
-  SkillItem,
-  UserProfile,
-} from "../types";
+import {
+  fetchFullSiteContent,
+  updateSiteSettings,
+  updateProfileData,
+  updateContactSettings,
+  saveProject,
+  saveCertification,
+  saveExperience,
+  saveSkill,
+} from "../services/firestoreService";
+import type { SiteContent } from "../types";
 import { SiteContentContext } from "./siteContentContext";
 
 /**
- * Komponen SiteContentProvider
- *
- * Menyimpan SELURUH isi situs di state React DAN di `localStorage` browser:
- * - State        : membuat komponen otomatis tampil ulang saat isi berubah.
- * - localStorage : data tidak hilang saat refresh, dan terbaca juga oleh tab lain.
- * - Event `storage`: jika admin menyimpan di satu tab, tab publik yang sudah terbuka ikut ter-update.
- *
- * CATATAN: ini pengganti sementara. Saat Firestore siap, cukup ganti cara membaca
- * (`readStoredContent`) dan menyimpan (`persist`). Komponen yang memakai
- * `useSiteContent()` tidak perlu diubah sama sekali.
+ * Komponen SiteContentProvider (Terintegrasi Cloud Firestore)
+ * 
+ * Mekanisme Kerja:
+ * 1. Initial State: Memulai render awal dengan `mockSiteContent` (tanpa loading screen yang mengganggu).
+ * 2. Asynchronous Fetch: `useEffect` memanggil `fetchFullSiteContent()` dari Cloud Firestore di background
+ *    dan memperbarui state secara halus ketika data telah diterima.
+ * 3. Cache & Sync: Menyimpan backup data ke `localStorage` agar situs tetap instan dan tahan offline.
+ * 4. Realtime Firestore Writes: Fungsi `updateContent` menyimpan pembaruan ke Firestore secara spesifik
+ *    per dokumen/koleksi (settings, profile, contact, projects, certs, experiences, skills).
  */
 
 const STORAGE_KEY = "site-content";
-// Kunci lama (versi sebelumnya hanya menyimpan pengaturan). Dibaca sekali agar data lama tidak hilang.
-const LEGACY_KEY = "site-settings";
 
-// Bentuk data yang mungkin tersimpan: semua bagian opsional karena bisa saja belum ada / sebagian.
-interface StoredContent {
-  settings?: Partial<SiteSettings>;
-  profile?: Partial<UserProfile>;
-  contact?: Partial<ContactSettings>;
-  skills?: SkillItem[];
-  projects?: ProjectItem[];
-  certifications?: CertificationItem[];
-  experiences?: ExperienceItem[];
-}
-
-/**
- * Membaca data tersimpan lalu menggabungkannya dengan data cadangan:
- * - Objek (settings, profile, contact): digabung per field, jadi field baru yang belum
- *   tersimpan tetap punya nilai bawaan.
- * - Array (skills, projects, dst.): dipakai apa adanya jika berupa array, kalau tidak pakai cadangan.
- */
-const readStoredContent = (): SiteContent => {
+const readCachedContent = (): SiteContent => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    const legacy = localStorage.getItem(LEGACY_KEY);
-    if (!raw && !legacy) return mockSiteContent;
-
-    const stored: StoredContent = raw
-      ? (JSON.parse(raw) as StoredContent)
-      : { settings: JSON.parse(legacy as string) as Partial<SiteSettings> };
-
+    if (!raw) return mockSiteContent;
+    const parsed = JSON.parse(raw);
     return {
-      settings: { ...mockSiteContent.settings, ...stored.settings },
-      profile: { ...mockSiteContent.profile, ...stored.profile },
-      contact: { ...mockSiteContent.contact, ...stored.contact },
-      skills: Array.isArray(stored.skills) ? stored.skills : mockSiteContent.skills,
-      projects: Array.isArray(stored.projects) ? stored.projects : mockSiteContent.projects,
-      certifications: Array.isArray(stored.certifications)
-        ? stored.certifications
-        : mockSiteContent.certifications,
-      experiences: Array.isArray(stored.experiences) ? stored.experiences : mockSiteContent.experiences,
+      settings: { ...mockSiteContent.settings, ...parsed.settings },
+      profile: { ...mockSiteContent.profile, ...parsed.profile },
+      contact: { ...mockSiteContent.contact, ...parsed.contact },
+      skills: Array.isArray(parsed.skills) && parsed.skills.length > 0 ? parsed.skills : mockSiteContent.skills,
+      projects: Array.isArray(parsed.projects) && parsed.projects.length > 0 ? parsed.projects : mockSiteContent.projects,
+      certifications: Array.isArray(parsed.certifications) && parsed.certifications.length > 0 ? parsed.certifications : mockSiteContent.certifications,
+      experiences: Array.isArray(parsed.experiences) && parsed.experiences.length > 0 ? parsed.experiences : mockSiteContent.experiences,
     };
   } catch {
-    return mockSiteContent; // JSON rusak atau localStorage diblokir
+    return mockSiteContent;
   }
 };
 
-const persist = (content: SiteContent) => {
+const persistCache = (data: SiteContent) => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(content));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   } catch {
-    // Abaikan jika penyimpanan penuh/diblokir; state tetap berlaku selama sesi
+    // Abaikan jika localStorage dibatasi
   }
 };
 
 export const SiteContentProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  // Fungsi di useState dijalankan SEKALI saja saat pertama dirender (lazy initial state)
-  const [content, setContent] = useState<SiteContent>(readStoredContent);
-
-  // useRef menyimpan nilai terbaru tanpa memicu render ulang. Dipakai agar dua pembaruan
-  // beruntun tidak saling menimpa (menghindari "stale closure").
+  const [content, setContent] = useState<SiteContent>(readCachedContent);
   const contentRef = useRef<SiteContent>(content);
 
-  // Mendengarkan perubahan localStorage dari TAB LAIN
+  // Ambil data terbaru langsung dari Cloud Firestore saat aplikasi dimuat
   useEffect(() => {
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key !== STORAGE_KEY) return;
-      const next = readStoredContent();
-      contentRef.current = next;
-      setContent(next);
+    let isMounted = true;
+
+    fetchFullSiteContent()
+      .then((liveData) => {
+        if (!isMounted) return;
+        contentRef.current = liveData;
+        setContent(liveData);
+        persistCache(liveData);
+      })
+      .catch((err) => {
+        console.warn("Menggunakan cache lokal karena Firestore offline:", err);
+      });
+
+    return () => {
+      isMounted = false;
     };
-    window.addEventListener("storage", handleStorage);
-    // Cleanup: lepaskan pendengar saat komponen dilepas agar tidak bocor memori
-    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
+  // Simpan data ke Firestore dan sinkronkan state lokal
   const updateContent = (patch: Partial<SiteContent>) => {
-    // Salin objek lama + timpa bagian yang berubah (state TIDAK boleh diubah langsung / mutasi)
-    const next = { ...contentRef.current, ...patch };
+    const next: SiteContent = { ...contentRef.current, ...patch };
     contentRef.current = next;
     setContent(next);
-    persist(next);
+    persistCache(next);
+
+    // Kirim sinkronisasi spesifik ke Cloud Firestore
+    if (patch.settings) {
+      updateSiteSettings(patch.settings).catch((e) => console.error("Gagal sinkron settings ke Firestore:", e));
+    }
+    if (patch.profile) {
+      updateProfileData(patch.profile).catch((e) => console.error("Gagal sinkron profile ke Firestore:", e));
+    }
+    if (patch.contact) {
+      updateContactSettings(patch.contact).catch((e) => console.error("Gagal sinkron contact ke Firestore:", e));
+    }
+    if (patch.projects) {
+      patch.projects.forEach((p) => saveProject(p).catch((e) => console.error("Gagal simpan project:", e)));
+    }
+    if (patch.certifications) {
+      patch.certifications.forEach((c) => saveCertification(c).catch((e) => console.error("Gagal simpan cert:", e)));
+    }
+    if (patch.experiences) {
+      patch.experiences.forEach((exp) => saveExperience(exp).catch((e) => console.error("Gagal simpan exp:", e)));
+    }
+    if (patch.skills) {
+      patch.skills.forEach((s) => saveSkill(s).catch((e) => console.error("Gagal simpan skill:", e)));
+    }
   };
 
   return (
@@ -115,4 +115,3 @@ export const SiteContentProvider: FC<{ children: ReactNode }> = ({ children }) =
     </SiteContentContext.Provider>
   );
 };
-
