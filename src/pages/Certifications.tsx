@@ -1,15 +1,20 @@
 import type { FC } from "react";
 import { Award, ExternalLink, CheckCircle2 } from "lucide-react";
 import { NeoButton } from "../components/common/NeoButton";
-import { mockCertifications } from "../data/mockData";
+import { useSiteContent } from "../context/siteContentContext";
 
 /**
  * Komponen Halaman Sertifikasi (`/certifications`)
  * 
- * Halaman mandiri untuk menampilkan lisensi, sertifikat keahlian, dan ujian kelulusan resmi.
+ * Dinamis membaca daftar sertifikasi dari `SiteContentContext`.
+ * Menampilkan nama sertifikasi, penerbit, deskripsi dinamis, cover sertifikat,
+ * serta tombol verifikasi badge bila credentialUrl disediakan.
  */
 
 export const Certifications: FC = () => {
+  const { content } = useSiteContent();
+  const { certifications } = content;
+
   return (
     <div className="w-full bg-[#bef264] p-6 sm:p-12 flex-1">
       {/* Banner Judul */}
@@ -25,17 +30,26 @@ export const Certifications: FC = () => {
         </p>
       </div>
 
-      {/* Grid Kartu Sertifikasi */}
+      {/* Grid Kartu Sertifikasi Dinamis */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        {mockCertifications.map((cert) => (
+        {certifications.map((cert) => (
           <div
             key={cert.id}
             className="bg-white border-2 border-black p-6 sm:p-8 shadow-neo hover:-translate-x-1 hover:-translate-y-1 hover:shadow-neo-lg transition-all flex flex-col justify-between"
           >
             <div>
-              <div className="w-12 h-12 bg-[#fb7185] border-2 border-black flex items-center justify-center mb-6 shadow-neo-sm">
-                <CheckCircle2 className="w-6 h-6 text-black stroke-[2.5]" />
-              </div>
+              {cert.imageUrl ? (
+                <img
+                  src={cert.imageUrl}
+                  alt={cert.title}
+                  className="w-full h-32 object-cover border-2 border-black mb-4 bg-neutral-100"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-12 h-12 bg-[#fb7185] border-2 border-black flex items-center justify-center mb-6 shadow-neo-sm">
+                  <CheckCircle2 className="w-6 h-6 text-black stroke-[2.5]" />
+                </div>
+              )}
 
               <h2 className="text-2xl font-black uppercase tracking-tight text-black mb-2">
                 {cert.title}
@@ -46,14 +60,20 @@ export const Certifications: FC = () => {
               </p>
 
               <p className="font-mono text-xs text-neutral-500 leading-relaxed mb-6">
-                Menunjukkan keahlian dalam prinsip rekayasa perangkat lunak modern, pengujian kode, dan integrasi berkelanjutan.
+                {cert.description || "Telah menunjukkan kompetensi dan penguasaan materi sesuai kurikulum standar industri."}
               </p>
             </div>
 
-            <NeoButton size="sm" variant="lime" href={cert.credentialUrl || "#"}>
-              <span>VERIFIKASI</span>
-              <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
-            </NeoButton>
+            {cert.credentialUrl ? (
+              <NeoButton size="sm" variant="lime" href={cert.credentialUrl}>
+                <span>VERIFIKASI BADGE</span>
+                <ExternalLink className="w-3.5 h-3.5 stroke-[2.5]" />
+              </NeoButton>
+            ) : (
+              <span className="font-mono text-xs text-neutral-400 font-bold uppercase text-center block">
+                TERVERIFIKASI
+              </span>
+            )}
           </div>
         ))}
       </div>

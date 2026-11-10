@@ -1,27 +1,29 @@
 import type { FC } from "react";
 import { SocialIcons } from "../common/SocialIcons";
+import { useSiteContent } from "../../context/siteContentContext";
 
 /**
- * Komponen Footer
+ * Komponen Footer Dinamis
  * 
- * Terletak di bagian paling bawah halaman sesuai desain:
- * - Sisi Kiri: Lencana nama `</> JOSHUA DEV`
- * - Tengah: Teks hak cipta
- * - Sisi Kanan: Baris ikon media sosial
+ * Mengambil nama brand (`settings.brandName`) dan teks copyright (`settings.footerText`)
+ * secara dinamis dari `SiteContentContext`.
  */
 
 export const Footer: FC = () => {
+  const { content } = useSiteContent();
+  const { settings } = content;
+
   return (
     <footer className="w-full bg-white border-t-2 border-black flex flex-col sm:flex-row items-stretch justify-between">
       {/* Lencana Logo Sisi Kiri */}
       <div className="bg-[#bef264] border-b-2 sm:border-b-0 sm:border-r-2 border-black px-6 py-3.5 flex items-center justify-center sm:justify-start gap-2 font-mono text-xs font-black tracking-wider uppercase select-none">
         <span>&lt;/&gt;</span>
-        <span>JOSHUA DEV</span>
+        <span>{settings.brandName || "PORTFOLIO"}</span>
       </div>
 
       {/* Teks Hak Cipta di Tengah */}
       <div className="px-6 py-3.5 flex items-center justify-center text-center text-xs font-mono font-medium text-neutral-800">
-        © 2026 Joshua Lapitan. All rights reserved.
+        {settings.footerText || `© ${new Date().getFullYear()} All rights reserved.`}
       </div>
 
       {/* Tombol Ikon Media Sosial di Kanan */}

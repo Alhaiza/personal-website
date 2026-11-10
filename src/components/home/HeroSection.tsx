@@ -1,24 +1,37 @@
-import type { FC } from "react";
+import { useState, type FC } from "react";
 import { ArrowUpRight, ArrowDown } from "lucide-react";
 import { NeoButton } from "../common/NeoButton";
 import { SocialIcons } from "../common/SocialIcons";
+import { useSiteContent } from "../../context/siteContentContext";
 import type { UserProfile } from "../../types";
 
 /**
- * Komponen HeroSection
+ * Komponen HeroSection Dinamis
  * 
- * Memotong (slicing) tampilan bagian hero:
- * - Kolom Kiri (60% di desktop): Background berpola grid, lencana sapaan, judul besar tebal,
- *   teks bio, tombol aksi (VIEW MY WORK, DOWNLOAD RESUME), dan tautan media sosial.
- * - Kolom Kanan (40% di desktop): Background merah muda (#fb7185), foto profil berbingkai dengan
- *   bayangan hijau limau, serta kartu kode terminal berwarna ungu yang menimpa di sudut bawah.
+ * Slicing Hero Banner:
+ * - Menampilkan sapaan nama (`profile.name`)
+ * - Menampilkan peran/jabatan besar (`profile.role`) yang terikat dinamis
+ * - Menampilkan bio ringkas (`profile.bio`)
+ * - Menampilkan tombol Download Resume dengan tautan dinamis (`settings.resumeUrl`)
+ * - Menampilkan foto profil dinamis (`settings.profileImageUrl`) dengan fallback "NO PHOTO"
+ * - Menampilkan kartu kode (`profile.codeSnippet.code`)
  */
 
 interface HeroSectionProps {
-  profile: UserProfile;
+  profile?: UserProfile;
 }
 
-export const HeroSection: FC<HeroSectionProps> = ({ profile }) => {
+export const HeroSection: FC<HeroSectionProps> = ({ profile: propProfile }) => {
+  const { content } = useSiteContent();
+  const profile = propProfile || content.profile;
+  const { settings } = content;
+
+  const [failedImage, setFailedImage] = useState<string | null>(null);
+  const photoBroken = failedImage === settings.profileImageUrl;
+
+  // Render role teks baris per baris bila dipisahkan spasi atau newline
+  const roleLines = profile.role ? profile.role.split("\n") : ["SOFTWARE", "DEVELOPER"];
+
   return (
     <section className="w-full grid grid-cols-1 lg:grid-cols-12 border-b-2 border-black">
       {/* ================= KOLOM KIRI (BIO & INTRO) ================= */}
@@ -26,13 +39,17 @@ export const HeroSection: FC<HeroSectionProps> = ({ profile }) => {
         <div>
           {/* Lencana Sapaan Ungu */}
           <div className="inline-flex items-center gap-1.5 bg-[#6366f1] text-white text-[11px] font-black uppercase tracking-wider px-3 py-1 border-2 border-black shadow-neo-sm mb-6 select-none">
-            <span>HEY, I'M {profile.name.toUpperCase()}</span>
+            <span>HEY, I'M {profile.name ? profile.name.toUpperCase() : "DEVELOPER"}</span>
             <span role="img" aria-label="wave">👋</span>
           </div>
 
-          {/* Judul Utama Bergaya Neo-Brutalist */}
+          {/* Judul Utama Terikat Dinamis ke profile.role */}
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-black leading-none uppercase mb-6">
-            SOFTWARE<br />DEVELOPER
+            {roleLines.map((line, idx) => (
+              <span key={idx} className="block">
+                {line}
+              </span>
+            ))}
           </h1>
 
           {/* Teks Deskripsi Singkat / Bio */}
@@ -42,12 +59,12 @@ export const HeroSection: FC<HeroSectionProps> = ({ profile }) => {
 
           {/* Baris Tombol Aksi Utama */}
           <div className="flex flex-wrap items-center gap-4 mb-10">
-            <NeoButton variant="lime" href="#projects">
+            <NeoButton variant="lime" to="/projects">
               <span>VIEW MY WORK</span>
               <ArrowUpRight className="w-4 h-4 stroke-[3]" />
             </NeoButton>
 
-            <NeoButton variant="white" href="/resume.pdf">
+            <NeoButton variant="white" href={settings.resumeUrl || "/resume.pdf"}>
               <span>DOWNLOAD RESUME</span>
               <ArrowDown className="w-4 h-4 stroke-[3]" />
             </NeoButton>
@@ -69,19 +86,26 @@ export const HeroSection: FC<HeroSectionProps> = ({ profile }) => {
           {/* Kartu Foto Utama dengan Bayangan Bingkai Hijau Limau */}
           <div className="relative bg-[#bef264] border-2 border-black p-2 shadow-neo-lg">
             <div className="border-2 border-black overflow-hidden aspect-[4/5] bg-black">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&auto=format&fit=crop&q=80"
-                alt="Foto Profil"
-                className="w-full h-full object-cover grayscale contrast-125"
-                loading="eager"
-              />
+              {settings.profileImageUrl && !photoBroken ? (
+                <img
+                  src={settings.profileImageUrl}
+                  alt={profile.name || "Foto Profil"}
+                  onError={() => setFailedImage(settings.profileImageUrl)}
+                  className="w-full h-full object-cover grayscale contrast-125"
+                  loading="eager"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-neutral-200 font-mono text-xs font-black uppercase text-neutral-600">
+                  NO PHOTO
+                </div>
+              )}
             </div>
           </div>
 
           {/* Kartu Kode Ungu Menimpa di Sudut Kanan Bawah */}
           <div className="absolute -bottom-6 -right-3 sm:-bottom-8 sm:-right-6 w-[85%] bg-[#6366f1] text-white border-2 border-black shadow-neo p-3 sm:p-4 font-mono text-[10px] sm:text-[11px] leading-relaxed">
             <pre className="whitespace-pre-wrap select-none font-semibold">
-              <code>{profile.codeSnippet.code}</code>
+              <code>{profile.codeSnippet?.code || ""}</code>
             </pre>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import type { FC, ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/authContext";
 
 /**
  * RequireAuth (Protected Route Guard)

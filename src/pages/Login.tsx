@@ -1,7 +1,7 @@
 import { useState, type FC, type FormEvent } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Lock, ArrowRight, AlertCircle, Sparkles } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/authContext";
 import { NeoButton } from "../components/common/NeoButton";
 
 /**

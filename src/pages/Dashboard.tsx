@@ -1,10 +1,5 @@
-import { useState, useEffect, type FC, type FormEvent } from "react";
+import { useState, type FC, type FormEvent } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ContactSettingsForm } from "../components/admin/ContactSettingsForm";
-import { SkillsManager } from "../components/admin/SkillsManager";
-import { SiteSettingsForm } from "../components/admin/SiteSettingsForm";
-import { AdminSidebar } from "../components/admin/AdminSidebar";
-import { isAdminTab, type AdminTab } from "../components/admin/adminTabs";
 import {
   Mail,
   LogOut,
@@ -17,23 +12,15 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../context/authContext";
+import { useSiteContent } from "../context/siteContentContext";
 import { NeoButton } from "../components/common/NeoButton";
-import {
-  getProfileData,
-  updateProfileData,
-  getProjects,
-  createProject,
-  deleteProject,
-  getCertifications,
-  createCertification,
-  deleteCertification,
-  getExperiences,
-  createExperience,
-  deleteExperience,
-  getContactMessages,
-  deleteContactMessage,
-} from "../services/firestoreService";
+import { ContactSettingsForm } from "../components/admin/ContactSettingsForm";
+import { SkillsManager } from "../components/admin/SkillsManager";
+import { SiteSettingsForm } from "../components/admin/SiteSettingsForm";
+import { AdminSidebar } from "../components/admin/AdminSidebar";
+import { AssetInput } from "../components/admin/AssetInput";
+import { isAdminTab, type AdminTab } from "../components/admin/adminTabs";
 import type {
   UserProfile,
   ProjectItem,
@@ -41,232 +28,181 @@ import type {
   ExperienceItem,
   ContactMessage,
 } from "../types";
-import { mockProfile, mockSkills } from "../data/mockData";
 
 /**
- * Admin Dashboard Component (`/dashboard`)
+ * Komponen Admin Dashboard (`/dashboard`)
  * 
- * Features:
- * - Tabbed navigation matching Neo-Brutalist design language.
- * - Profile Settings: Live editor for bio, title, name, and social links.
- * - Projects Manager: Full Firestore CRUD operations (add new projects, view list, delete).
- * - Certifications Manager: Add & delete credentials.
- * - Experiences Manager: Manage work career timeline.
- * - Messages Inbox: Read contact form submissions received from visitors.
- * - Secure Logout: Destroys Firebase session and redirects to `/login`.
+ * Terintegrasi penuh dengan `SiteContentContext` (dan dipersistensikan ke localStorage):
+ * - Profile Info: Live editor untuk nama, role (SOFTWARE DEVELOPER di Hero), bio, dan kode snippet.
+ * - Projects Manager: CRUD proyek dengan cover image, tag, status featured, live demo URL, dan repo URL.
+ * - Certifications Manager: Tambah & hapus sertifikasi lengkap dengan thumbnail & tautan verifikasi.
+ * - Experience Manager: Kelola rekam jejak karier.
+ * - Skills Manager: Kelola teknologi, ikon, dan urutan.
+ * - General Settings: Kelola brand, footer, CTA headline, badge, foto profil, dan URL resume.
+ * - Contact & Social: Kelola email, alamat/lokasi, dan semua tautan sosial media.
+ * - Messages: Inbox pesan kontak dari pengunjung.
  */
 
 export const Dashboard: FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Tab aktif diambil dari URL (`/dashboard/:tab`), sehingga setiap tab punya alamat sendiri
-  // dan tetap aktif saat halaman di-refresh. Jika parameter tidak valid, pakai "profile".
-  // `isAdminTab` memastikan nilai dari URL adalah tab yang valid (daftar tab ada di adminTabs.ts).
+  const { content, updateContent } = useSiteContent();
+
   const { tab } = useParams<{ tab: string }>();
   const activeTab: AdminTab = isAdminTab(tab) ? tab : "profile";
-  // Berpindah tab = berpindah URL. "profile" memakai URL dasar `/dashboard`.
+
   const setActiveTab = (next: AdminTab) =>
     navigate(next === "profile" ? "/dashboard" : `/dashboard/${next}`);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // Skills dikelola di komponen sendiri (state lokal), jadi lencana memakai jumlah data awal.
-  const skillCount = mockSkills.length;
 
-  // Status banners
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Firestore Data State
-  const [profile, setProfile] = useState<UserProfile>(mockProfile);
-  const [projects, setProjects] = useState<ProjectItem[]>([]);
-  const [certifications, setCertifications] = useState<CertificationItem[]>([]);
-  const [experiences, setExperiences] = useState<ExperienceItem[]>([]);
-  const [messages, setMessages] = useState<ContactMessage[]>([]);
+  // State lokal formulir profil
+  const [profileForm, setProfileForm] = useState<UserProfile>(content.profile);
 
-  // Form states for adding items
-  const [newProject, setNewProject] = useState({
+  // State lokal tambah proyek baru
+  const [newProject, setNewProject] = useState<Omit<ProjectItem, "id">>({
     title: "",
     description: "",
-    tags: "React, Tailwind, TypeScript",
+    tags: ["React", "TypeScript", "Tailwind"],
     imageUrl: "https://images.unsplash.com/photo-1592210454359-9043f067919b?w=800&auto=format&fit=crop&q=80",
     projectUrl: "",
     githubUrl: "",
-    featured: false, // true = tampil di carousel "Featured Projects" pada Home
+    featured: true,
   });
+  const [tagsInput, setTagsInput] = useState("React, TypeScript, Tailwind");
 
-  const [newCert, setNewCert] = useState({
+  // State lokal tambah sertifikasi baru
+  const [newCert, setNewCert] = useState<Omit<CertificationItem, "id">>({
     title: "",
     issuer: "",
+    description: "",
     credentialUrl: "",
+    imageUrl: "",
   });
 
-  const [newExp, setNewExp] = useState({
+  // State lokal tambah pengalaman baru
+  const [newExp, setNewExp] = useState<Omit<ExperienceItem, "id">>({
     role: "",
     company: "",
     period: "2024 - PRESENT",
     description: "",
   });
 
-  // Fetch initial data from Firestore
-  useEffect(() => {
-    loadAllData();
-  }, []);
-
-  const loadAllData = async () => {
-    try {
-      const [profData, projData, certData, expData, msgData] = await Promise.all([
-        getProfileData(),
-        getProjects(),
-        getCertifications(),
-        getExperiences(),
-        getContactMessages(),
-      ]);
-
-      if (profData) setProfile(profData);
-      setProjects(projData);
-      setCertifications(certData);
-      setExperiences(expData);
-      setMessages(msgData);
-    } catch {
-      // In case Firestore collections are empty initially, fallback gracefully
-    }
-  };
+  // State pesan kontak
+  const [messages, setMessages] = useState<ContactMessage[]>([]);
 
   const showNotification = (text: string, type: "success" | "error" = "success") => {
     setFeedback({ type, text });
     setTimeout(() => setFeedback(null), 4000);
   };
 
-  // Sign out handler
   const handleLogout = async () => {
     await logout();
     navigate("/login", { replace: true });
   };
 
-  // Profile Save Handler
-  const handleSaveProfile = async (e: FormEvent) => {
+  // Simpan Profile
+  const handleSaveProfile = (e: FormEvent) => {
     e.preventDefault();
-    try {
-      await updateProfileData(profile);
-      showNotification("Profile updated successfully in Firestore!");
-    } catch (err: unknown) {
-      showNotification((err as Error).message || "Failed to update profile", "error");
-    }
+    updateContent({ profile: profileForm });
+    showNotification("Profil berhasil diperbarui dan langsung tampil di Hero!");
   };
 
-  // Project Add Handler
-  const handleAddProject = async (e: FormEvent) => {
+  // Tambah Proyek
+  const handleAddProject = (e: FormEvent) => {
     e.preventDefault();
-    try {
-      await createProject({
-        title: newProject.title,
-        description: newProject.description,
-        tags: newProject.tags.split(",").map((t) => t.trim()),
-        imageUrl: newProject.imageUrl,
-        projectUrl: newProject.projectUrl,
-        githubUrl: newProject.githubUrl,
-        featured: newProject.featured,
-        order: projects.length + 1,
-      });
-      showNotification("New project created in Firestore!");
-      setNewProject({
-        title: "",
-        description: "",
-        tags: "React, Tailwind, TypeScript",
-        imageUrl: "",
-        projectUrl: "",
-        githubUrl: "",
-        featured: false,
-      });
-      const updated = await getProjects();
-      setProjects(updated);
-    } catch (err: unknown) {
-      showNotification((err as Error).message || "Failed to add project", "error");
-    }
+    if (!newProject.title.trim()) return;
+
+    const parsedTags = tagsInput
+      .split(",")
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+
+    const project: ProjectItem = {
+      id: crypto.randomUUID(),
+      ...newProject,
+      tags: parsedTags,
+    };
+
+    updateContent({ projects: [project, ...content.projects] });
+    showNotification("Proyek baru berhasil ditambahkan!");
+
+    setNewProject({
+      title: "",
+      description: "",
+      tags: ["React"],
+      imageUrl: "",
+      projectUrl: "",
+      githubUrl: "",
+      featured: false,
+    });
+    setTagsInput("");
   };
 
-  // Project Delete Handler
-  const handleDeleteProject = async (id?: string) => {
-    if (!id || !confirm("Are you sure you want to delete this project?")) return;
-    try {
-      await deleteProject(id);
-      setProjects(projects.filter((p) => p.id !== id));
-      showNotification("Project deleted successfully.");
-    } catch (err: unknown) {
-      showNotification((err as Error).message || "Failed to delete project", "error");
-    }
+  // Hapus Proyek
+  const handleDeleteProject = (id: string) => {
+    if (!confirm("Hapus proyek ini dari portofolio?")) return;
+    updateContent({ projects: content.projects.filter((p) => p.id !== id) });
+    showNotification("Proyek berhasil dihapus.");
   };
 
-  // Certification Add & Delete
-  const handleAddCert = async (e: FormEvent) => {
+  // Tambah Sertifikasi
+  const handleAddCert = (e: FormEvent) => {
     e.preventDefault();
-    try {
-      await createCertification({
-        title: newCert.title,
-        issuer: newCert.issuer,
-        credentialUrl: newCert.credentialUrl,
-        order: certifications.length + 1,
-      });
-      showNotification("Certification added!");
-      setNewCert({ title: "", issuer: "", credentialUrl: "" });
-      const updated = await getCertifications();
-      setCertifications(updated);
-    } catch (err: unknown) {
-      showNotification((err as Error).message || "Failed to add cert", "error");
-    }
+    if (!newCert.title.trim()) return;
+
+    const cert: CertificationItem = {
+      id: crypto.randomUUID(),
+      ...newCert,
+    };
+
+    updateContent({ certifications: [...content.certifications, cert] });
+    showNotification("Sertifikasi baru berhasil ditambahkan!");
+
+    setNewCert({
+      title: "",
+      issuer: "",
+      description: "",
+      credentialUrl: "",
+      imageUrl: "",
+    });
   };
 
-  const handleDeleteCert = async (id?: string) => {
-    if (!id || !confirm("Delete this certification?")) return;
-    try {
-      await deleteCertification(id);
-      setCertifications(certifications.filter((c) => c.id !== id));
-      showNotification("Certification removed.");
-    } catch (err: unknown) {
-      showNotification((err as Error).message || "Failed to delete cert", "error");
-    }
+  // Hapus Sertifikasi
+  const handleDeleteCert = (id: string) => {
+    if (!confirm("Hapus sertifikasi ini?")) return;
+    updateContent({ certifications: content.certifications.filter((c) => c.id !== id) });
+    showNotification("Sertifikasi berhasil dihapus.");
   };
 
-  // Experience Add & Delete
-  const handleAddExp = async (e: FormEvent) => {
+  // Tambah Pengalaman
+  const handleAddExp = (e: FormEvent) => {
     e.preventDefault();
-    try {
-      await createExperience({
-        role: newExp.role,
-        company: newExp.company,
-        period: newExp.period,
-        description: newExp.description,
-        order: experiences.length + 1,
-      });
-      showNotification("Experience entry added!");
-      setNewExp({ role: "", company: "", period: "", description: "" });
-      const updated = await getExperiences();
-      setExperiences(updated);
-    } catch (err: unknown) {
-      showNotification((err as Error).message || "Failed to add experience", "error");
-    }
+    if (!newExp.role.trim() || !newExp.company.trim()) return;
+
+    const exp: ExperienceItem = {
+      id: crypto.randomUUID(),
+      ...newExp,
+    };
+
+    updateContent({ experiences: [exp, ...content.experiences] });
+    showNotification("Pengalaman baru berhasil ditambahkan!");
+
+    setNewExp({
+      role: "",
+      company: "",
+      period: "2024 - PRESENT",
+      description: "",
+    });
   };
 
-  const handleDeleteExp = async (id?: string) => {
-    if (!id || !confirm("Delete this experience?")) return;
-    try {
-      await deleteExperience(id);
-      setExperiences(experiences.filter((e) => e.id !== id));
-      showNotification("Experience removed.");
-    } catch (err: unknown) {
-      showNotification((err as Error).message || "Failed to delete experience", "error");
-    }
-  };
-
-  // Message Delete Handler
-  const handleDeleteMsg = async (id?: string) => {
-    if (!id || !confirm("Delete this message?")) return;
-    try {
-      await deleteContactMessage(id);
-      setMessages(messages.filter((m) => m.id !== id));
-      showNotification("Message deleted.");
-    } catch (err: unknown) {
-      showNotification((err as Error).message || "Failed to delete message", "error");
-    }
+  // Hapus Pengalaman
+  const handleDeleteExp = (id: string) => {
+    if (!confirm("Hapus riwayat pengalaman ini?")) return;
+    updateContent({ experiences: content.experiences.filter((e) => e.id !== id) });
+    showNotification("Pengalaman berhasil dihapus.");
   };
 
   return (
@@ -279,7 +215,7 @@ export const Dashboard: FC = () => {
               ADMIN CMS
             </div>
             <span className="font-mono text-xs text-neutral-500 hidden sm:inline">
-              Signed in as: <strong className="text-black">{user?.email}</strong>
+              Signed in as: <strong className="text-black">{user?.email || "Admin"}</strong>
             </span>
           </div>
 
@@ -303,11 +239,10 @@ export const Dashboard: FC = () => {
               <span>LOGOUT</span>
             </button>
 
-            {/* Mobile Menu Toggle Button */}
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="sm:hidden p-1.5 border-2 border-black bg-white shadow-neo-sm"
+              className="sm:hidden p-1.5 border-2 border-black bg-white shadow-neo-sm cursor-pointer"
               aria-label="Toggle Dashboard Menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -316,20 +251,20 @@ export const Dashboard: FC = () => {
         </div>
       </header>
 
-      {/* Main Content Area with Sidebar Layout */}
+      {/* Main Container Layout */}
       <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col md:flex-row border-x-2 border-black bg-white shadow-neo-lg my-0 sm:my-6">
-        {/* Sidebar bergrup (KONTEN / HALAMAN / KOTAK MASUK). Di mobile disembunyikan sampai tombol menu ditekan. */}
+        {/* Sidebar Navigasi Terkelompok */}
         <AdminSidebar
           activeTab={activeTab}
           onSelect={(next) => {
             setActiveTab(next);
-            setMobileMenuOpen(false); // tutup menu mobile setelah memilih
+            setMobileMenuOpen(false);
           }}
           counts={{
-            skills: skillCount,
-            projects: projects.length,
-            certifications: certifications.length,
-            experiences: experiences.length,
+            skills: content.skills.length,
+            projects: content.projects.length,
+            certifications: content.certifications.length,
+            experiences: content.experiences.length,
             messages: messages.length,
           }}
           className={mobileMenuOpen ? "block" : "hidden md:block"}
@@ -337,7 +272,6 @@ export const Dashboard: FC = () => {
 
         {/* Dynamic Tab Panel */}
         <main className="flex-1 p-6 sm:p-10 bg-neutral-50 min-h-[500px]">
-          {/* Notification Feedback Toast */}
           {feedback && (
             <div
               className={`mb-6 p-4 border-2 border-black shadow-neo flex items-center gap-3 font-mono text-xs font-bold ${
@@ -353,11 +287,6 @@ export const Dashboard: FC = () => {
             </div>
           )}
 
-          {/* Panel baru. Setiap panel hanya dirender saat tab-nya aktif (conditional rendering). */}
-          {activeTab === "contact" && <ContactSettingsForm />}
-          {activeTab === "skills" && <SkillsManager />}
-          {activeTab === "settings" && <SiteSettingsForm />}
-
           {/* TAB 1: PROFILE INFO */}
           {activeTab === "profile" && (
             <div>
@@ -366,7 +295,7 @@ export const Dashboard: FC = () => {
                   EDIT PROFILE INFO
                 </h2>
                 <p className="font-mono text-xs text-neutral-600 mt-1">
-                  Manage headline, bio, and social coordinates saved in the Firestore `profile/general` document.
+                  Atur sapaan nama, judul profesi di Hero, dan bio ringkas yang tampil di publik.
                 </p>
               </div>
 
@@ -378,21 +307,24 @@ export const Dashboard: FC = () => {
                   <input
                     type="text"
                     required
-                    value={profile.name}
-                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
                     className="w-full border-2 border-black p-3 font-mono text-xs focus:bg-neutral-50 focus:outline-none shadow-neo-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black uppercase tracking-wider mb-2">
-                    PROFESSIONAL TITLE / HEADLINE
+                  <label className="block text-xs font-black uppercase tracking-wider mb-1">
+                    PROFESSIONAL TITLE / HEADLINE (HERO BANNER)
                   </label>
+                  <p className="font-mono text-[11px] text-neutral-500 mb-2">
+                    Teks ini tampil sebagai judul besar di Hero section (misal: "SOFTWARE DEVELOPER" atau "FULLSTACK ENGINEER").
+                  </p>
                   <input
                     type="text"
                     required
-                    value={profile.role}
-                    onChange={(e) => setProfile({ ...profile, role: e.target.value })}
+                    value={profileForm.role}
+                    onChange={(e) => setProfileForm({ ...profileForm, role: e.target.value })}
                     className="w-full border-2 border-black p-3 font-mono text-xs focus:bg-neutral-50 focus:outline-none shadow-neo-sm"
                   />
                 </div>
@@ -404,8 +336,8 @@ export const Dashboard: FC = () => {
                   <textarea
                     rows={3}
                     required
-                    value={profile.bio}
-                    onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                    value={profileForm.bio}
+                    onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
                     className="w-full border-2 border-black p-3 font-mono text-xs focus:bg-neutral-50 focus:outline-none shadow-neo-sm resize-none"
                   />
                 </div>
@@ -417,10 +349,10 @@ export const Dashboard: FC = () => {
                   <textarea
                     rows={5}
                     required
-                    value={profile.codeSnippet?.code || ""}
+                    value={profileForm.codeSnippet?.code || ""}
                     onChange={(e) =>
-                      setProfile({
-                        ...profile,
+                      setProfileForm({
+                        ...profileForm,
                         codeSnippet: { language: "typescript", code: e.target.value },
                       })
                     }
@@ -428,14 +360,14 @@ export const Dashboard: FC = () => {
                   />
                 </div>
 
-                {/* Tautan sosial TIDAK diedit di sini lagi, supaya hanya ada satu sumber data. */}
                 <p className="font-mono text-[11px] text-neutral-600 bg-neutral-100 border-2 border-dashed border-black p-3">
                   Email, lokasi & tautan sosial media dikelola di menu <strong>CONTACT &amp; SOCIAL</strong>.
+                  Foto profil &amp; file resume dikelola di menu <strong>GENERAL SETTINGS</strong>.
                 </p>
 
                 <NeoButton type="submit" variant="lime" size="md">
                   <Save className="w-4 h-4 stroke-[2.5]" />
-                  <span>SAVE CHANGES TO FIRESTORE</span>
+                  <span>SIMPAN PERUBAHAN PROFIL</span>
                 </NeoButton>
               </form>
             </div>
@@ -449,134 +381,136 @@ export const Dashboard: FC = () => {
                   PROJECTS MANAGER
                 </h2>
                 <p className="font-mono text-xs text-neutral-600 mt-1">
-                  Create, view, and delete project showcase documents from the `projects` collection.
+                  Kelola kartu portofolio proyek lengkap dengan cover image, tag, tautan live demo, GitHub repo, dan toggle featured.
                 </p>
               </div>
 
-              {/* Add New Project Form */}
-              <form onSubmit={handleAddProject} className="bg-white border-2 border-black p-6 sm:p-8 shadow-neo max-w-2xl">
-                <h3 className="text-sm font-black uppercase tracking-wider mb-6 flex items-center gap-2">
-                  <Plus className="w-4 h-4 stroke-[3]" /> ADD NEW PROJECT DOCUMENT
+              {/* Form Tambah Proyek */}
+              <form onSubmit={handleAddProject} className="bg-white border-2 border-black p-6 sm:p-8 shadow-neo max-w-2xl space-y-5">
+                <h3 className="text-sm font-black uppercase tracking-wider mb-4 flex items-center gap-2">
+                  <Plus className="w-4 h-4 stroke-[3]" /> ADD NEW PROJECT
                 </h3>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-black uppercase tracking-wider mb-1">
-                      PROJECT TITLE
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Weatherly Dashboard"
-                      value={newProject.title}
-                      onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
-                      className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-black uppercase tracking-wider mb-1">
-                      DESCRIPTION
-                    </label>
-                    <textarea
-                      rows={2}
-                      required
-                      placeholder="Short summary of features..."
-                      value={newProject.description}
-                      onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                      className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm resize-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-black uppercase tracking-wider mb-1">
-                      TAGS (COMMA SEPARATED)
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="React, TypeScript, Tailwind, Firebase"
-                      value={newProject.tags}
-                      onChange={(e) => setNewProject({ ...newProject, tags: e.target.value })}
-                      className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-black uppercase tracking-wider mb-1">
-                      COVER IMAGE URL
-                    </label>
-                    <input
-                      type="url"
-                      required
-                      value={newProject.imageUrl}
-                      onChange={(e) => setNewProject({ ...newProject, imageUrl: e.target.value })}
-                      className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm"
-                    />
-                  </div>
-
-                  {/* Dua URL opsional berdampingan di tablet ke atas */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="project-url" className="block text-xs font-black uppercase tracking-wider mb-1">
-                        LIVE DEMO URL
-                      </label>
-                      <input
-                        id="project-url"
-                        type="url"
-                        placeholder="https://proyek-anda.com"
-                        value={newProject.projectUrl}
-                        onChange={(e) => setNewProject({ ...newProject, projectUrl: e.target.value })}
-                        className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="project-github" className="block text-xs font-black uppercase tracking-wider mb-1">
-                        GITHUB REPO URL
-                      </label>
-                      <input
-                        id="project-github"
-                        type="url"
-                        placeholder="https://github.com/user/repo"
-                        value={newProject.githubUrl}
-                        onChange={(e) => setNewProject({ ...newProject, githubUrl: e.target.value })}
-                        className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Toggle "Featured": checkbox bertipe boolean. Nilainya diambil dari `e.target.checked`, bukan `value`. */}
-                  <label
-                    htmlFor="project-featured"
-                    className="flex items-center gap-3 p-3 border-2 border-black bg-neutral-50 shadow-neo-sm cursor-pointer select-none"
-                  >
-                    <input
-                      id="project-featured"
-                      type="checkbox"
-                      checked={newProject.featured}
-                      onChange={(e) => setNewProject({ ...newProject, featured: e.target.checked })}
-                      className="w-5 h-5 accent-black cursor-pointer"
-                    />
-                    <span className="text-xs font-black uppercase tracking-wider">
-                      FEATURED <span className="font-mono font-normal normal-case text-neutral-600">(tampil di carousel Home)</span>
-                    </span>
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider mb-1">
+                    PROJECT TITLE
                   </label>
-
-                  <NeoButton type="submit" variant="purple" size="md">
-                    <Plus className="w-4 h-4 stroke-[3]" />
-                    <span>CREATE PROJECT DOCUMENT</span>
-                  </NeoButton>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Weatherly Dashboard"
+                    value={newProject.title}
+                    onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
+                    className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm"
+                  />
                 </div>
+
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider mb-1">
+                    DESCRIPTION
+                  </label>
+                  <textarea
+                    rows={2}
+                    required
+                    placeholder="Short summary of features..."
+                    value={newProject.description}
+                    onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                    className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-black uppercase tracking-wider mb-1">
+                    TAGS (PISAHKAN DENGAN KOMA)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="React, TypeScript, Tailwind, Firebase"
+                    value={tagsInput}
+                    onChange={(e) => setTagsInput(e.target.value)}
+                    className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm"
+                  />
+                </div>
+
+                <AssetInput
+                  id="project-image"
+                  label="COVER IMAGE URL"
+                  hint="Thumbnail yang tampil di kartu proyek dan carousel Home"
+                  kind="image"
+                  required
+                  value={newProject.imageUrl}
+                  onChange={(value) => setNewProject({ ...newProject, imageUrl: value })}
+                  placeholder="https://... atau /gambar-proyek.jpg"
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="project-url" className="block text-xs font-black uppercase tracking-wider mb-1">
+                      LIVE DEMO URL
+                    </label>
+                    <input
+                      id="project-url"
+                      type="url"
+                      placeholder="https://proyek-anda.com"
+                      value={newProject.projectUrl}
+                      onChange={(e) => setNewProject({ ...newProject, projectUrl: e.target.value })}
+                      className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="project-github" className="block text-xs font-black uppercase tracking-wider mb-1">
+                      GITHUB REPO URL
+                    </label>
+                    <input
+                      id="project-github"
+                      type="url"
+                      placeholder="https://github.com/user/repo"
+                      value={newProject.githubUrl}
+                      onChange={(e) => setNewProject({ ...newProject, githubUrl: e.target.value })}
+                      className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm"
+                    />
+                  </div>
+                </div>
+
+                <label
+                  htmlFor="project-featured"
+                  className="flex items-center gap-3 p-3 border-2 border-black bg-neutral-50 shadow-neo-sm cursor-pointer select-none"
+                >
+                  <input
+                    id="project-featured"
+                    type="checkbox"
+                    checked={newProject.featured}
+                    onChange={(e) => setNewProject({ ...newProject, featured: e.target.checked })}
+                    className="w-5 h-5 accent-black cursor-pointer"
+                  />
+                  <span className="text-xs font-black uppercase tracking-wider">
+                    FEATURED PROJECT <span className="font-mono font-normal normal-case text-neutral-600">(Tampilkan di carousel Home)</span>
+                  </span>
+                </label>
+
+                <NeoButton type="submit" variant="purple" size="md">
+                  <Plus className="w-4 h-4 stroke-[3]" />
+                  <span>TAMBAH PROYEK</span>
+                </NeoButton>
               </form>
 
-              {/* Projects List */}
+              {/* Daftar Proyek */}
               <div>
                 <h3 className="text-sm font-black uppercase tracking-wider mb-4">
-                  EXISTING PROJECTS ({projects.length})
+                  EXISTING PROJECTS ({content.projects.length})
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {projects.map((proj) => (
+                  {content.projects.map((proj) => (
                     <div key={proj.id} className="bg-white border-2 border-black p-4 shadow-neo flex flex-col justify-between">
                       <div>
+                        {proj.imageUrl && (
+                          <img
+                            src={proj.imageUrl}
+                            alt={`Thumbnail ${proj.title}`}
+                            className="w-full aspect-video object-cover border-2 border-black mb-3"
+                            loading="lazy"
+                          />
+                        )}
                         <div className="flex items-start justify-between gap-2">
                           <h4 className="font-black text-sm uppercase text-black">{proj.title}</h4>
                           {proj.featured && (
@@ -619,11 +553,10 @@ export const Dashboard: FC = () => {
                   CERTIFICATIONS MANAGER
                 </h2>
                 <p className="font-mono text-xs text-neutral-600 mt-1">
-                  Manage credential documents stored in the `certifications` Firestore collection.
+                  Kelola sertifikasi lengkap dengan nama, penerbit, deskripsi, thumbnail, dan link verifikasi badge.
                 </p>
               </div>
 
-              {/* Form */}
               <form onSubmit={handleAddCert} className="bg-white border-2 border-black p-6 shadow-neo max-w-xl space-y-4">
                 <h3 className="text-sm font-black uppercase tracking-wider mb-4 flex items-center gap-2">
                   <Plus className="w-4 h-4 stroke-[3]" /> ADD CERTIFICATION
@@ -651,6 +584,16 @@ export const Dashboard: FC = () => {
                   />
                 </div>
                 <div>
+                  <label className="block text-xs font-black uppercase tracking-wider mb-1">DESCRIPTION</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Keterangan singkat materi atau kompetensi..."
+                    value={newCert.description}
+                    onChange={(e) => setNewCert({ ...newCert, description: e.target.value })}
+                    className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm resize-none"
+                  />
+                </div>
+                <div>
                   <label htmlFor="cert-url" className="block text-xs font-black uppercase tracking-wider mb-1">
                     CREDENTIAL VERIFICATION URL
                   </label>
@@ -663,18 +606,45 @@ export const Dashboard: FC = () => {
                     className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm"
                   />
                 </div>
+                <AssetInput
+                  id="cert-image"
+                  label="CERTIFICATE IMAGE URL"
+                  hint="Thumbnail sertifikat (opsional)"
+                  kind="image"
+                  value={newCert.imageUrl || ""}
+                  onChange={(value) => setNewCert({ ...newCert, imageUrl: value })}
+                  placeholder="https://... atau /sertifikat.jpg"
+                />
                 <NeoButton type="submit" variant="lime" size="sm">
-                  <span>ADD CERTIFICATE</span>
+                  <span>TAMBAH SERTIFIKASI</span>
                 </NeoButton>
               </form>
 
-              {/* List */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {certifications.map((c) => (
+                {content.certifications.map((c) => (
                   <div key={c.id} className="bg-[#bef264] border-2 border-black p-4 shadow-neo flex flex-col justify-between">
                     <div>
+                      {c.imageUrl && (
+                        <img
+                          src={c.imageUrl}
+                          alt={`Thumbnail ${c.title}`}
+                          className="w-full aspect-video object-cover border-2 border-black mb-3 bg-white"
+                          loading="lazy"
+                        />
+                      )}
                       <h4 className="font-black text-lg text-black">{c.title}</h4>
                       <p className="font-mono text-xs text-neutral-800">{c.issuer}</p>
+                      {c.credentialUrl && (
+                        <a
+                          href={c.credentialUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 mt-2 text-[11px] font-mono underline font-bold"
+                        >
+                          <span>VERIFY LINK</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
                     </div>
                     <div className="mt-4 pt-3 border-t border-black flex justify-end">
                       <button
@@ -699,11 +669,10 @@ export const Dashboard: FC = () => {
                   CAREER EXPERIENCES MANAGER
                 </h2>
                 <p className="font-mono text-xs text-neutral-600 mt-1">
-                  Manage timeline positions stored in the `experiences` Firestore collection.
+                  Kelola riwayat karier yang tampil di timeline halaman utama dan /experience.
                 </p>
               </div>
 
-              {/* Form */}
               <form onSubmit={handleAddExp} className="bg-white border-2 border-black p-6 shadow-neo max-w-xl space-y-4">
                 <h3 className="text-sm font-black uppercase tracking-wider mb-4 flex items-center gap-2">
                   <Plus className="w-4 h-4 stroke-[3]" /> ADD TIMELINE POSITION
@@ -753,13 +722,12 @@ export const Dashboard: FC = () => {
                   />
                 </div>
                 <NeoButton type="submit" variant="purple" size="sm">
-                  <span>ADD TO TIMELINE</span>
+                  <span>TAMBAH RIWAYAT KARIER</span>
                 </NeoButton>
               </form>
 
-              {/* List */}
               <div className="space-y-4">
-                {experiences.map((exp) => (
+                {content.experiences.map((exp) => (
                   <div key={exp.id} className="bg-white border-2 border-black p-4 shadow-neo flex items-start justify-between">
                     <div>
                       <h4 className="font-black text-sm uppercase text-black">{exp.role} • {exp.company}</h4>
@@ -779,7 +747,16 @@ export const Dashboard: FC = () => {
             </div>
           )}
 
-          {/* TAB 5: MESSAGES INBOX */}
+          {/* TAB 5: SKILLS */}
+          {activeTab === "skills" && <SkillsManager />}
+
+          {/* TAB 6: GENERAL SETTINGS */}
+          {activeTab === "settings" && <SiteSettingsForm />}
+
+          {/* TAB 7: CONTACT & SOCIAL */}
+          {activeTab === "contact" && <ContactSettingsForm />}
+
+          {/* TAB 8: MESSAGES INBOX */}
           {activeTab === "messages" && (
             <div>
               <div className="pb-6 mb-8 border-b-2 border-black">
@@ -787,7 +764,7 @@ export const Dashboard: FC = () => {
                   INQUIRY INBOX ({messages.length})
                 </h2>
                 <p className="font-mono text-xs text-neutral-600 mt-1">
-                  Submissions sent from the public `/contact` form and saved into the `messages` collection.
+                  Pesan yang dikirimkan pengunjung dari halaman publik /contact.
                 </p>
               </div>
 
@@ -795,7 +772,7 @@ export const Dashboard: FC = () => {
                 <div className="bg-white border-2 border-black p-10 text-center shadow-neo">
                   <Mail className="w-10 h-10 mx-auto mb-3 text-neutral-400 stroke-1" />
                   <p className="font-mono text-xs text-neutral-600 font-bold uppercase">
-                    NO MESSAGES RECEIVED YET.
+                    BELUM ADA PESAN MASUK.
                   </p>
                 </div>
               ) : (
@@ -817,7 +794,7 @@ export const Dashboard: FC = () => {
                       <div className="mt-4 flex justify-end">
                         <button
                           type="button"
-                          onClick={() => handleDeleteMsg(msg.id)}
+                          onClick={() => setMessages(messages.filter((m) => m.id !== msg.id))}
                           className="px-3 py-1 bg-[#fb7185] hover:bg-[#f43f5e] border border-black text-xs font-black uppercase shadow-neo-sm cursor-pointer"
                         >
                           DELETE INQUIRY
@@ -834,4 +811,3 @@ export const Dashboard: FC = () => {
     </div>
   );
 };
-

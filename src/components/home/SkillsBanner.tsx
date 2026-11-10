@@ -1,21 +1,22 @@
 import type { FC } from "react";
 import { ArrowRight } from "lucide-react";
+import { useSiteContent } from "../../context/siteContentContext";
 import type { SkillItem } from "../../types";
 
 /**
- * Komponen SkillsBanner
+ * Komponen SkillsBanner Dinamis
  * 
- * Menampilkan baris keahlian teknologi di bawah hero:
- * - Lencana ungu di kiri: "SKILLS ->"
- * - Grid bersih berisi ikon dan nama teknologi (React, TypeScript, Node.js, Tailwind CSS, MongoDB, Git)
- * - Dipisahkan dengan garis tepi hitam tegas 2px
+ * Mengambil daftar skill secara dinamis dari `SiteContentContext` (atau props).
  */
 
 interface SkillsBannerProps {
-  skills: SkillItem[];
+  skills?: SkillItem[];
 }
 
-export const SkillsBanner: FC<SkillsBannerProps> = ({ skills }) => {
+export const SkillsBanner: FC<SkillsBannerProps> = ({ skills: propSkills }) => {
+  const { content } = useSiteContent();
+  const skills = propSkills || content.skills;
+
   return (
     <section id="skills" className="w-full bg-white border-b-2 border-black flex flex-col sm:flex-row items-stretch">
       {/* Lencana Ungu Sisi Kiri */}
@@ -24,7 +25,7 @@ export const SkillsBanner: FC<SkillsBannerProps> = ({ skills }) => {
         <ArrowRight className="w-4 h-4 stroke-[3]" />
       </div>
 
-      {/* Grid Daftar Teknologi */}
+      {/* Grid Daftar Teknologi Dinamis */}
       <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 divide-y-2 sm:divide-y-0 sm:divide-x-2 divide-black">
         {skills.map((skill) => (
           <div

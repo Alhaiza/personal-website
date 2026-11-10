@@ -1,21 +1,28 @@
 import { useState, type FC, type FormEvent } from "react";
-import { Mail, Send, CheckCircle2, MapPin, Sparkles } from "lucide-react";
+import { Mail, Send, CheckCircle2, MapPin, Sparkles, AlertCircle } from "lucide-react";
 import { NeoButton } from "../components/common/NeoButton";
 import { SocialIcons } from "../components/common/SocialIcons";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { useSiteContent } from "../context/siteContentContext";
 
 /**
- * Komponen Halaman Kontak (`/contact`)
+ * Komponen Halaman Kontak (`/contact`) Dinamis
  * 
- * Halaman mandiri berisi formulir kontak interaktif.
- * Terintegrasi langsung dengan Cloud Firestore:
- * - Menggunakan `addDoc` untuk menyimpan data pesan ke koleksi `messages`.
+ * - Membaca info kontak langsung (`contact.email` dan `contact.location`) secara dinamis.
+ * - Formulir interaktif dengan penanganan error yang jujur & transparan:
+ *   Jika pengiriman ke Firestore gagal, sistem menampilkan peringatan error
+ *   bukannya memberikan informasi palsu "Pesan terkirim!".
  */
 
 export const Contact: FC = () => {
+  const { content } = useSiteContent();
+  const { contact } = content;
+
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -26,6 +33,7 @@ export const Contact: FC = () => {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage(null);
 
     try {
       // Simpan langsung ke koleksi 'messages' di Cloud Firestore
@@ -35,9 +43,12 @@ export const Contact: FC = () => {
         createdAt: serverTimestamp(),
       });
       setSubmitted(true);
-    } catch {
-      // Jika Firestore belum diinisialisasi atau offline, tetap berikan konfirmasi
-      setSubmitted(true);
+    } catch (err: unknown) {
+      // Tangani error secara transparan sesuai audit
+      const msg = err instanceof Error ? err.message : "Terjadi kesalahan saat mengirim pesan.";
+      setErrorMessage(
+        `Gagal mengirim pesan ke server (${msg}). Silakan hubungi langsung via email di ${contact.email || "kontak kami"}.`
+      );
     } finally {
       setLoading(false);
     }
@@ -46,7 +57,7 @@ export const Contact: FC = () => {
   return (
     <div className="w-full bg-[#6366f1] bg-grid-pattern p-6 sm:p-12 text-white flex-1 flex flex-col justify-center">
       <div className="max-w-4xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Kolom Kiri: Informasi Kontak Langsung */}
+        {/* Kolom Kiri: Informasi Kontak Langsung Terikat Dinamis */}
         <div className="lg:col-span-5 bg-white text-black border-2 border-black p-6 sm:p-8 shadow-neo">
           <div className="inline-flex items-center gap-1.5 bg-[#fb7185] text-black text-xs font-black uppercase tracking-wider px-3 py-1 border-2 border-black shadow-neo-sm mb-6 select-none">
             <Sparkles className="w-3.5 h-3.5" /> HUBUNGI SAYA
@@ -61,19 +72,23 @@ export const Contact: FC = () => {
           </p>
 
           <div className="space-y-4 font-mono text-xs mb-8">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-[#bef264] border border-black flex items-center justify-center">
-                <Mail className="w-4 h-4 text-black" />
+            {contact.email && (
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-[#bef264] border border-black flex items-center justify-center">
+                  <Mail className="w-4 h-4 text-black" />
+                </div>
+                <span className="font-bold">{contact.email}</span>
               </div>
-              <span className="font-bold">joshua@example.com</span>
-            </div>
+            )}
 
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-[#fb7185] border border-black flex items-center justify-center">
-                <MapPin className="w-4 h-4 text-black" />
+            {contact.location && (
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-[#fb7185] border border-black flex items-center justify-center">
+                  <MapPin className="w-4 h-4 text-black" />
+                </div>
+                <span className="font-bold">{contact.location}</span>
               </div>
-              <span className="font-bold">Jakarta / Remote Worldwide</span>
-            </div>
+            )}
           </div>
 
           <div className="pt-6 border-t-2 border-dashed border-neutral-300">
@@ -110,6 +125,13 @@ export const Contact: FC = () => {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
+              {errorMessage && (
+                <div className="p-3 bg-[#fb7185] border-2 border-black shadow-neo-sm flex items-start gap-2.5 text-xs font-mono font-bold text-black">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-black stroke-[2.5]" />
+                  <p>{errorMessage}</p>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-black uppercase tracking-wider mb-2">
                   NAMA ANDA

@@ -1,24 +1,15 @@
 import { useState, type ChangeEvent, type FC, type FormEvent } from "react";
 import { ArrowUp, ArrowDown, Plus, Trash2, CheckCircle2 } from "lucide-react";
-import { mockSkills } from "../../data/mockData";
+import { useSiteContent } from "../../context/siteContentContext";
 import type { SkillIconType, SkillItem } from "../../types";
 
 /**
  * Komponen SkillsManager (tab `/dashboard/skills`)
  *
- * Mengelola daftar skill yang tampil di banner "SKILLS" pada halaman publik.
- * Data masih disimpan di STATE LOKAL (hilang saat refresh); nanti tinggal
- * diganti dengan pemanggilan service Firestore.
- *
- * Konsep React yang dipelajari:
- * 1. State berupa ARRAY  -> daftar skill disimpan di `skills`.
- * 2. Menambah item       -> buat array baru: `[...skills, itemBaru]`.
- * 3. Menghapus item      -> `filter()` untuk membuang item tertentu.
- * 4. Mengurutkan item    -> tukar posisi dua elemen pada salinan array.
- *    PENTING: state tidak boleh diubah langsung (mutasi), selalu buat salinan baru.
+ * Mengelola daftar skill yang tersimpan di `SiteContentContext` (dan dipersistensikan ke localStorage).
+ * Urutan dan item di sini langsung merefleksikan banner Skills publik & halaman `/skills`.
  */
 
-// Pilihan ikon untuk dropdown. Nilainya harus sama dengan yang dikenali SkillsBanner.
 const iconOptions: { value: SkillIconType; label: string }[] = [
   { value: "react", label: "React" },
   { value: "typescript", label: "TypeScript" },
@@ -32,14 +23,11 @@ const inputClass =
   "w-full border-2 border-black p-3 font-mono text-xs focus:bg-neutral-50 focus:outline-none shadow-neo-sm";
 
 export const SkillsManager: FC = () => {
-  // Daftar skill yang sedang dikelola (nilai awal dari data tiruan)
-  const [skills, setSkills] = useState<SkillItem[]>(mockSkills);
+  const { content, updateContent } = useSiteContent();
+  const skills = content.skills;
 
-  // State form tambah skill
   const [name, setName] = useState("");
   const [iconType, setIconType] = useState<SkillIconType>("react");
-
-  // Pesan konfirmasi singkat
   const [notice, setNotice] = useState<string | null>(null);
 
   const showNotice = (text: string) => {
@@ -47,43 +35,40 @@ export const SkillsManager: FC = () => {
     setTimeout(() => setNotice(null), 3000);
   };
 
-  // Menambah skill baru ke akhir daftar
   const handleAdd = (e: FormEvent) => {
-    e.preventDefault(); // Cegah reload halaman
+    e.preventDefault();
+    if (!name.trim()) return;
+
     const newSkill: SkillItem = {
-      id: crypto.randomUUID(), // ID unik sementara (nanti diganti ID dari Firestore)
+      id: crypto.randomUUID(),
       name: name.trim(),
       iconType,
     };
-    setSkills((prev) => [...prev, newSkill]); // salinan baru + item baru
+
+    updateContent({ skills: [...skills, newSkill] });
     setName("");
-    showNotice(`Skill "${newSkill.name}" ditambahkan.`);
+    showNotice(`Skill "${newSkill.name}" berhasil ditambahkan!`);
   };
 
-  // Menghapus skill berdasarkan id
   const handleDelete = (id: string) => {
     if (!confirm("Hapus skill ini?")) return;
-    setSkills((prev) => prev.filter((s) => s.id !== id));
+    updateContent({ skills: skills.filter((s) => s.id !== id) });
+    showNotice("Skill berhasil dihapus.");
   };
 
-  /**
-   * Memindahkan skill ke atas (-1) atau ke bawah (+1).
-   * Caranya: salin array, lalu tukar elemen pada `index` dengan elemen tetangganya.
-   */
   const handleMove = (index: number, direction: -1 | 1) => {
     const target = index + direction;
-    if (target < 0 || target >= skills.length) return; // sudah di ujung, abaikan
-    setSkills((prev) => {
-      const copy = [...prev];
-      [copy[index], copy[target]] = [copy[target], copy[index]];
-      return copy;
-    });
+    if (target < 0 || target >= skills.length) return;
+    const copy = [...skills];
+    [copy[index], copy[target]] = [copy[target], copy[index]];
+    updateContent({ skills: copy });
   };
 
-  // Mengubah ikon skill yang sudah ada langsung dari kartu
   const handleIconChange = (id: string, e: ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value as SkillIconType;
-    setSkills((prev) => prev.map((s) => (s.id === id ? { ...s, iconType: value } : s)));
+    updateContent({
+      skills: skills.map((s) => (s.id === id ? { ...s, iconType: value } : s)),
+    });
   };
 
   return (
@@ -91,7 +76,7 @@ export const SkillsManager: FC = () => {
       <div className="pb-6 border-b-2 border-black">
         <h2 className="text-2xl font-black uppercase tracking-tight text-black">SKILLS MANAGER</h2>
         <p className="font-mono text-xs text-neutral-600 mt-1">
-          Atur daftar teknologi yang tampil di banner Skills pada halaman utama. Urutan di sini = urutan di publik.
+          Atur daftar teknologi yang tampil di banner Skills dan halaman /skills publik.
         </p>
       </div>
 
@@ -152,7 +137,7 @@ export const SkillsManager: FC = () => {
         </button>
       </form>
 
-      {/* Daftar skill sebagai kartu */}
+      {/* Daftar kartu skill */}
       <div>
         <h3 className="text-sm font-black uppercase tracking-wider mb-4">
           EXISTING SKILLS ({skills.length})
@@ -187,7 +172,6 @@ export const SkillsManager: FC = () => {
                 </select>
 
                 <div className="flex items-center justify-between pt-3 border-t-2 border-dashed border-neutral-300">
-                  {/* Tombol urutan: dinonaktifkan di ujung daftar */}
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -226,4 +210,3 @@ export const SkillsManager: FC = () => {
     </div>
   );
 };
-

@@ -1,21 +1,21 @@
 import type { FC } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { useSiteContent } from "../../context/siteContentContext";
 
 /**
- * Komponen Navbar dengan React Router DOM
+ * Komponen Navbar Dinamis
  * 
- * Konsep Penting Routing:
- * 1. `<Link to="...">`: Menggantikan tag <a> biasa. Mencegah reload halaman penuh dan menukar komponen secara instan di memori browser.
- * 2. `<NavLink to="...">`: Mirip dengan <Link>, namun menyediakan boolean `isActive` untuk menandai halaman yang sedang aktif.
- * 3. `useNavigate()`: Hook dari React Router untuk melakukan navigasi secara terprogram lewat kode JavaScript (misal: redirect setelah klik tombol).
+ * Mengambil nama brand (`settings.brandName`) secara dinamis dari context.
+ * Memastikan semua tautan menu navigasi mengarah ke rute yang valid.
  */
 
 export const Navbar: FC = () => {
-  // Hook useNavigate untuk berpindah rute secara terprogram
+  const { content } = useSiteContent();
+  const { settings } = content;
   const navigate = useNavigate();
 
-  // Fungsi pembantu untuk memberi gaya visual pada menu yang sedang aktif (active link)
+  // Helper function untuk styling rute yang sedang aktif
   const getNavLinkClass = ({ isActive }: { isActive: boolean }) =>
     `transition-colors hover:underline decoration-2 underline-offset-4 ${
       isActive ? "underline font-black text-black bg-[#bef264] px-2 py-1 border border-black shadow-neo-sm" : "text-black"
@@ -24,16 +24,16 @@ export const Navbar: FC = () => {
   return (
     <header className="sticky top-0 z-50 bg-white border-b-2 border-black">
       <div className="w-full flex items-stretch justify-between">
-        {/* Lencana Logo - Berpindah kembali ke Beranda ("/") */}
+        {/* Brand Logo - Menggunakan brandName dinamis */}
         <Link
           to="/"
           className="bg-[#bef264] border-r-2 border-black px-4 sm:px-6 py-3.5 flex items-center gap-2 font-mono text-xs sm:text-sm font-black tracking-wider uppercase select-none hover:bg-[#a3e635] transition-colors"
         >
           <span>&lt;/&gt;</span>
-          <span>JOSHUA DEV</span>
+          <span>{settings.brandName || "PORTFOLIO"}</span>
         </Link>
 
-        {/* Menu Navigasi Multi-Halaman di Bagian Tengah */}
+        {/* Tautan Navigasi Antar Halaman */}
         <nav className="hidden md:flex items-center justify-center gap-6 lg:gap-8 text-[11px] font-black uppercase tracking-wider">
           <NavLink to="/" end className={getNavLinkClass}>
             HOME
@@ -52,7 +52,7 @@ export const Navbar: FC = () => {
           </NavLink>
         </nav>
 
-        {/* Tombol Aksi Kanan menggunakan navigasi terprogram useNavigate() */}
+        {/* Tombol Kontak CTA */}
         <button
           type="button"
           onClick={() => navigate("/contact")}

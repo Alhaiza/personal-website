@@ -1,68 +1,75 @@
 import type { FC } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthProvider";
+import { SiteContentProvider } from "./context/SiteContentProvider";
 import { RootLayout } from "./components/layout/RootLayout";
 import { RequireAuth } from "./components/admin/RequireAuth";
 
-// Dedicated Public Pages
+// Halaman Publik Dedikasi
 import { Home } from "./pages/Home";
 import { Projects } from "./pages/Projects";
 import { Certifications } from "./pages/Certifications";
+import { Skills } from "./pages/Skills";
+import { Experience } from "./pages/Experience";
 import { Contact } from "./pages/Contact";
 import { NotFound } from "./pages/NotFound";
 
-// Secret Admin Pages
+// Halaman Rahasia Admin
 import { Login } from "./pages/Login";
 import { Dashboard } from "./pages/Dashboard";
 
 /**
- * App Root Component with Authentication & Multi-Page Routing
+ * Komponen Utama Aplikasi (App)
  * 
- * Architectural Flow:
- * 1. `<AuthProvider>`: Wraps the entire routing tree to broadcast user session state.
- * 2. Public Pages: Rendered inside `<RootLayout />` with persistent Navbar & Footer.
- * 3. Secret `/login`: Standalone minimal authentication screen (no public navigation links).
- * 4. Protected `/dashboard`: Wrapped with `<RequireAuth>`. Unauthenticated visitors are
- *    automatically deflected to `/login`.
+ * Arsitektur State & Routing:
+ * 1. `<AuthProvider>`: Menyediakan status autentikasi Firebase.
+ * 2. `<SiteContentProvider>`: Menyediakan data konten dinamis terpusat
+ *    (Settings, Profile, Contact, Skills, Projects, Certifications, Experience)
+ *    yang disinkronkan secara mulus via context & localStorage sebelum Firestore.
+ * 3. Rute Publik: Termasuk perbaikan rute `/skills` dan `/experience` agar tidak 404.
+ * 4. Rute Admin: Terlindungi `<RequireAuth>` di `/dashboard` dan `/dashboard/:tab`.
  */
 
 const App: FC = () => {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public Portal (Shared RootLayout: Navbar + Outlet + Footer) */}
-          <Route path="/" element={<RootLayout />}>
-            <Route index element={<Home />} />
-            <Route path="projects" element={<Projects />} />
-            <Route path="certifications" element={<Certifications />} />
-            <Route path="contact" element={<Contact />} />
-            <Route path="*" element={<NotFound />} />
-          </Route>
+      <SiteContentProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Halaman Publik (Shared RootLayout: Navbar + Outlet + Footer) */}
+            <Route path="/" element={<RootLayout />}>
+              <Route index element={<Home />} />
+              <Route path="projects" element={<Projects />} />
+              <Route path="certifications" element={<Certifications />} />
+              <Route path="skills" element={<Skills />} />
+              <Route path="experience" element={<Experience />} />
+              <Route path="contact" element={<Contact />} />
+              <Route path="*" element={<NotFound />} />
+            </Route>
 
-          {/* Hidden Admin Access (No links in public navbar/footer) */}
-          <Route path="/login" element={<Login />} />
+            {/* Gerbang Rahasia Login Admin */}
+            <Route path="/login" element={<Login />} />
 
-          {/* Protected Admin CMS Dashboard */}
-          {/* `:tab` adalah parameter dinamis, contoh: /dashboard/contact atau /dashboard/projects */}
-          <Route
-            path="/dashboard"
-            element={
-              <RequireAuth>
-                <Dashboard />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/dashboard/:tab"
-            element={
-              <RequireAuth>
-                <Dashboard />
-              </RequireAuth>
-            }
-          />
-        </Routes>
-      </BrowserRouter>
+            {/* Dashboard Terproteksi CMS Admin */}
+            <Route
+              path="/dashboard"
+              element={
+                <RequireAuth>
+                  <Dashboard />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/dashboard/:tab"
+              element={
+                <RequireAuth>
+                  <Dashboard />
+                </RequireAuth>
+              }
+            />
+          </Routes>
+        </BrowserRouter>
+      </SiteContentProvider>
     </AuthProvider>
   );
 };
