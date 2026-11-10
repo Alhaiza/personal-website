@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent, type FC, type FormEvent } from "react";
-import { Save, Globe } from "lucide-react";
+import { Save, Globe, Loader2 } from "lucide-react";
 import { useSiteContent } from "../../context/siteContentContext";
 import { useToast } from "../common/toastContext";
 import { AssetInput } from "./AssetInput";
@@ -33,6 +33,11 @@ export const SiteSettingsForm: FC = () => {
   const toast = useToast();
   const [form, setForm] = useState<SiteSettings>(content.settings);
 
+  // Status apakah ada aset yang sedang aktif diunggah ke Firebase Storage
+  const [uploadingProfile, setUploadingProfile] = useState(false);
+  const [uploadingResume, setUploadingResume] = useState(false);
+  const isAnyUploading = uploadingProfile || uploadingResume;
+
   const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -40,6 +45,11 @@ export const SiteSettingsForm: FC = () => {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (isAnyUploading) {
+      toast.error("Harap tunggu hingga proses unggah berkas selesai.", "TUNGGU UNGGAHAN");
+      return;
+    }
+
     try {
       updateContent({ settings: form });
       toast.success("Pengaturan umum berhasil disimpan dan langsung aktif di seluruh website!");
@@ -68,9 +78,17 @@ export const SiteSettingsForm: FC = () => {
               label="PROFILE PICTURE URL"
               hint="Tampil di: foto besar pada bagian Hero"
               kind="image"
+              folder="profiles"
               square
               value={form.profileImageUrl}
               onChange={(value) => setForm((prev) => ({ ...prev, profileImageUrl: value }))}
+              onDeleteAsset={() => {
+                const nextSettings = { ...form, profileImageUrl: "" };
+                setForm(nextSettings);
+                updateContent({ settings: nextSettings });
+                toast.success("Foto profil dihapus dari database & penyimpanan.");
+              }}
+              onUploadingChange={setUploadingProfile}
               placeholder="https://... atau /foto-profil.jpg"
             />
 
@@ -79,8 +97,16 @@ export const SiteSettingsForm: FC = () => {
               label="RESUME FILE URL"
               hint="Tampil di: tombol Download Resume (Hero) & View Full Resume (Experience)"
               kind="file"
+              folder="resumes"
               value={form.resumeUrl}
               onChange={(value) => setForm((prev) => ({ ...prev, resumeUrl: value }))}
+              onDeleteAsset={() => {
+                const nextSettings = { ...form, resumeUrl: "" };
+                setForm(nextSettings);
+                updateContent({ settings: nextSettings });
+                toast.success("File resume dihapus dari database & penyimpanan.");
+              }}
+              onUploadingChange={setUploadingResume}
               placeholder="/resume.pdf"
             />
           </fieldset>
@@ -120,10 +146,20 @@ export const SiteSettingsForm: FC = () => {
 
           <button
             type="submit"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#bef264] hover:bg-[#a3e635] border-2 border-black shadow-neo text-xs font-black uppercase tracking-wider cursor-pointer transition-all duration-100 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+            disabled={isAnyUploading}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#bef264] hover:bg-[#a3e635] border-2 border-black shadow-neo text-xs font-black uppercase tracking-wider cursor-pointer transition-all duration-100 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Save className="w-4 h-4 stroke-[2.5]" />
-            <span>SAVE CHANGES</span>
+            {isAnyUploading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin stroke-[2.5]" />
+                <span>MENGUNGGAH BERKAS...</span>
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 stroke-[2.5]" />
+                <span>SAVE CHANGES</span>
+              </>
+            )}
           </button>
         </form>
 

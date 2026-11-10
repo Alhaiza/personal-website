@@ -1,35 +1,62 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FC } from "react";
-import { AlertCircle, ExternalLink, FileText, ImageIcon, Upload, X } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ExternalLink,
+  FileText,
+  ImageIcon,
+  Loader2,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
+import {
+  uploadFileLocally,
+  deleteFileLocally,
+  type StorageFolder,
+} from "../../services/storageService";
+import { ConfirmModal } from "../common/ConfirmModal";
+import { useToast } from "../common/toastContext";
 
 /**
  * Komponen AssetInput
  *
- * Input untuk aset (gambar atau berkas) yang dipakai ulang di banyak form admin:
- * foto profil, resume, gambar proyek, dan gambar sertifikat.
+ * Input untuk aset berkas (gambar atau dokumen PDF) yang dipakai di form admin:
+ * foto profil, resume PDF, thumbnail proyek, dan gambar sertifikat.
  *
- * Isi komponen:
- * 1. Kolom URL        -> nilai yang BENAR-BENAR disimpan (string URL).
- * 2. Kotak pratinjau  -> menampilkan gambar jika URL valid, atau pesan jika kosong/salah.
- * 3. Tombol "Pilih File" -> SIMULASI. Berkas tidak diunggah ke mana pun; hanya untuk
- *    mencoba alur pemilihan berkas dan melihat pratinjau lokalnya.
- *
- * Konsep React yang dipelajari:
- * - Komponen "controlled" : nilai dimiliki induk (`value`), perubahan dilaporkan lewat `onChange`.
- * - useRef                : menyimpan nilai yang tidak perlu memicu render ulang (elemen input file, URL objek).
- * - useEffect (cleanup)   : membersihkan sumber daya saat komponen dilepas dari layar.
+ * Fitur Utama Alur Unggah Lokal (Tanpa Biaya / Tanpa Firebase Blaze Plan):
+ * 1. Unggah Fisik ke `public/uploads/`:
+ *    Saat berkas dipilih melalui dialog browser, berkas dikirimkan ke endpoint
+ *    Vite Dev Server `/api/upload` yang secara otomatis menyimpannya ke folder fisik
+ *    `public/uploads/nama-file.ext`.
+ * 2. Path Relatif Bersih untuk Firestore:
+ *    Setelah unggah selesai, URL yang disimpan ke state & Cloud Firestore adalah
+ *    path relatif bersih seperti `/uploads/1741234567-foto.png`.
+ * 3. Kompatibel Penuh:
+ *    Browser dan Vite dapat langsung membaca file dari `/uploads/...` baik di
+ *    dashboard admin maupun di seluruh halaman publik (Hero, Projects, Certifications).
+ * 4. Aturan Penguncian Form ("Upload First, Save Later"):
+ *    Mengirimkan sinyal status unggah (`onUploadingChange`) ke form induk sehingga
+ *    tombol "Save / Submit" dinonaktifkan selama proses upload berlangsung.
  */
 
-interface AssetInputProps {
+export interface AssetInputProps {
   id: string;
   label: string;
   // Keterangan singkat di bawah label (misal "Tampil di: Hero")
   hint?: string;
   value: string;
-  // Dipanggil dengan string URL terbaru setiap pengguna mengetik
+  // Dipanggil dengan string URL terbaru setiap kali URL berubah atau unggah selesai
   onChange: (value: string) => void;
+  // Callback opsional saat berkas dihapus (berguna untuk auto-sync penghapusan record ke Firestore)
+  onDeleteAsset?: () => void;
+  // Callback opsional ke induk untuk mengunci tombol Submit selama proses unggah
+  onUploadingChange?: (isUploading: boolean) => void;
   placeholder?: string;
-  // "image" menampilkan pratinjau gambar, "file" menampilkan kartu berkas (misal PDF)
+  // "image" menampilkan pratinjau gambar, "file" menampilkan kartu berkas dokumen
   kind?: "image" | "file";
+  // Folder penyimpanan di Firebase Storage
+  folder?: StorageFolder;
   // true = kotak pratinjau persegi (cocok untuk foto profil), false = 16:9
   square?: boolean;
   required?: boolean;
@@ -37,15 +64,14 @@ interface AssetInputProps {
 
 /**
  * Memeriksa apakah teks layak dianggap URL aset:
- * - diawali "/" (berkas milik situs sendiri, contoh: /resume.pdf), atau
- * - URL lengkap dengan protokol http/https.
- * Dibuat di luar komponen karena tidak bergantung pada state/props.
+ * - diawali "/" (berkas lokal direktori public, contoh: /resume.pdf), atau
+ * - URL lengkap dengan protokol http/https (termasuk secure URL Firebase Storage).
  */
 const isValidAssetUrl = (text: string): boolean => {
   if (!text) return false;
   if (text.startsWith("/")) return true;
   try {
-    const { protocol } = new URL(text); // `new URL` melempar error jika format salah
+    const { protocol } = new URL(text);
     return protocol === "http:" || protocol === "https:";
   } catch {
     return false;
@@ -58,59 +84,172 @@ export const AssetInput: FC<AssetInputProps> = ({
   hint,
   value,
   onChange,
+  onDeleteAsset,
+  onUploadingChange,
   placeholder,
   kind = "image",
+  folder = "assets",
   square = false,
   required = false,
 }) => {
+  const toast = useToast();
   const trimmed = value.trim();
   const urlOk = isValidAssetUrl(trimmed);
 
-  // Menyimpan URL gambar yang GAGAL dimuat. Gambar dianggap rusak jika URL-nya sama dengan yang gagal.
-  // (Dengan cara ini tidak perlu mereset state lewat useEffect saat pengguna mengetik URL baru.)
+  // Status error pemuatan pratinjau gambar
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const imageBroken = failedUrl === trimmed;
 
-  // Berkas yang dipilih lewat tombol simulasi (hanya untuk pratinjau lokal)
-  const [picked, setPicked] = useState<{ name: string; url: string } | null>(null);
+  // State untuk proses pengunggahan ke Firebase Storage
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState<{
+    fileName: string;
+    isSuccess: boolean;
+    localPreviewUrl?: string;
+  } | null>(null);
 
-  // Referensi ke <input type="file"> yang disembunyikan, agar bisa "diklik" lewat tombol kita
+  // State untuk Custom Neo-Brutalism Confirm Modal (pengganti window.confirm)
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
+  // Referensi ke <input type="file"> yang disembunyikan
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Menyimpan URL objek terakhir agar bisa dibebaskan dari memori (revoke)
-  const objectUrlRef = useRef<string | null>(null);
+  const localPreviewUrlRef = useRef<string | null>(null);
 
-  // Cleanup: saat komponen dilepas, bebaskan URL objek supaya tidak membocorkan memori.
+  // Informasikan form induk setiap kali status `isUploading` berubah
+  useEffect(() => {
+    if (onUploadingChange) {
+      onUploadingChange(isUploading);
+    }
+  }, [isUploading, onUploadingChange]);
+
+  // Bersihkan object URL lokal saat komponen di-unmount agar tidak membocorkan memori
   useEffect(() => {
     return () => {
-      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+      if (localPreviewUrlRef.current) {
+        URL.revokeObjectURL(localPreviewUrlRef.current);
+      }
     };
   }, []);
 
-  const clearPicked = () => {
-    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-    objectUrlRef.current = null;
-    setPicked(null);
+  const clearUploadStatus = () => {
+    if (localPreviewUrlRef.current) {
+      URL.revokeObjectURL(localPreviewUrlRef.current);
+      localPreviewUrlRef.current = null;
+    }
+    setUploadStatus(null);
+    setUploadProgress(0);
   };
 
-  // Saat pengguna mengetik URL: lepas pratinjau berkas simulasi, lalu laporkan nilai ke induk
+  // Saat pengguna mengetik langsung di input teks URL
   const handleTextChange = (e: ChangeEvent<HTMLInputElement>) => {
-    clearPicked();
+    clearUploadStatus();
     onChange(e.target.value);
   };
 
-  // Saat pengguna memilih berkas lewat dialog bawaan browser
-  const handlePickFile = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; // `?.` aman jika tidak ada berkas dipilih
-    if (!file) return;
-    clearPicked();
-    const url = URL.createObjectURL(file); // URL sementara yang hanya hidup di browser ini
-    objectUrlRef.current = url;
-    setPicked({ name: file.name, url });
-    e.target.value = ""; // reset agar berkas yang sama bisa dipilih lagi
+  // Hapus berkas fisik yang ada di /uploads/ (misal untuk gambar hero atau resume)
+  const handleRemoveExistingFile = () => {
+    if (!trimmed) return;
+
+    if (trimmed.startsWith("/uploads/")) {
+      // Buka modal konfirmasi Neo-Brutalism kustom
+      setIsConfirmOpen(true);
+    } else {
+      // Jika hanya URL eksternal biasa, langsung bersihkan tanpa konfirmasi file fisik
+      clearUploadStatus();
+      onChange("");
+    }
   };
 
-  // Sumber gambar untuk pratinjau: berkas simulasi diprioritaskan, lalu URL yang valid
-  const imageSrc = picked?.url ?? (urlOk && !imageBroken ? trimmed : null);
+  // Konfirmasi hapus berkas fisik lokal setelah disetujui di modal kustom
+  const handleConfirmDelete = async () => {
+    setIsConfirmOpen(false);
+
+    if (trimmed.startsWith("/uploads/")) {
+      try {
+        await deleteFileLocally(trimmed);
+        toast.success("Berkas fisik di folder public/uploads/ berhasil dihapus.");
+      } catch (err) {
+        console.warn("Gagal menghapus berkas fisik:", err);
+      }
+    }
+
+    clearUploadStatus();
+    onChange("");
+
+    // Panggil callback onDeleteAsset jika disediakan (misal untuk langsung sync perubahan ke Firestore)
+    if (onDeleteAsset) {
+      onDeleteAsset();
+    }
+  };
+
+  // Saat pengguna memilih berkas dari dialog komputer/perangkat
+  const handlePickFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Bersihkan pratinjau sebelumnya
+    clearUploadStatus();
+
+    // Buat URL pratinjau lokal sementara untuk visual instan saat mengunggah
+    const localUrl = URL.createObjectURL(file);
+    localPreviewUrlRef.current = localUrl;
+
+    // Batasan ukuran berkas di frontend (maks 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Ukuran berkas maksimal adalah 10MB.", "BERKAS TERLALU BESAR");
+      e.target.value = "";
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+    setUploadStatus({
+      fileName: file.name,
+      isSuccess: false,
+      localPreviewUrl: localUrl,
+    });
+
+    try {
+      // Unggah berkas secara fisik ke folder lokal public/uploads/
+      // Sertakan value lama (trimmed) agar jika ada berkas lama di /uploads/, berkas lama otomatis terhapus
+      const localRelativeUrl = await uploadFileLocally({
+        file,
+        previousUrl: trimmed,
+        onProgress: (percent) => {
+          setUploadProgress(percent);
+        },
+      });
+
+      // Berhasil: perbarui input form dengan path relatif lokal (/uploads/nama-file.ext)
+      onChange(localRelativeUrl);
+      setUploadStatus({
+        fileName: file.name,
+        isSuccess: true,
+        localPreviewUrl: localRelativeUrl,
+      });
+
+      toast.success(
+        `Berkas "${file.name}" berhasil disimpan ke public/uploads/!`,
+        "UNGGAH LOKAL BERHASIL"
+      );
+    } catch (err: unknown) {
+      console.error("Gagal mengunggah berkas lokal:", err);
+      toast.error(
+        (err as Error).message || "Gagal mengunggah berkas ke direktori lokal",
+        "UNGGAH GAGAL"
+      );
+      clearUploadStatus();
+    } finally {
+      setIsUploading(false);
+      e.target.value = ""; // Reset input file agar dapat memilih berkas yang sama jika diinginkan
+    }
+  };
+
+  // Tentukan sumber gambar pratinjau
+  const imageSrc =
+    uploadStatus?.localPreviewUrl ||
+    (urlOk && !imageBroken ? trimmed : null);
 
   return (
     <div>
@@ -119,7 +258,7 @@ export const AssetInput: FC<AssetInputProps> = ({
       </label>
       {hint && <p className="font-mono text-[11px] text-neutral-500 mb-2">{hint}</p>}
 
-      {/* Mobile: tersusun ke bawah. Tablet ke atas: input di kiri, pratinjau di kanan. */}
+      {/* Tampilan responsif: Input di kiri, kotak pratinjau di kanan */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1 min-w-0 space-y-3">
           <input
@@ -127,88 +266,152 @@ export const AssetInput: FC<AssetInputProps> = ({
             type="text"
             required={required}
             value={value}
+            disabled={isUploading}
             onChange={handleTextChange}
             placeholder={placeholder}
-            className="w-full border-2 border-black p-3 font-mono text-xs focus:bg-neutral-50 focus:outline-none shadow-neo-sm"
+            className="w-full border-2 border-black p-3 font-mono text-xs focus:bg-neutral-50 focus:outline-none shadow-neo-sm disabled:opacity-60 disabled:cursor-not-allowed"
           />
 
-          {/* Input file asli disembunyikan; tombol di bawah yang memicunya lewat ref */}
+          {/* Input type file asli (disembunyikan) */}
           <input
             ref={fileInputRef}
             type="file"
             accept={kind === "image" ? "image/*" : ".pdf,application/pdf"}
             onChange={handlePickFile}
+            disabled={isUploading}
             className="hidden"
             aria-hidden="true"
             tabIndex={-1}
           />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-[#bef264] border-2 border-black shadow-neo-sm text-xs font-black uppercase tracking-wider cursor-pointer transition-all duration-100 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
-          >
-            <Upload className="w-4 h-4 stroke-[2.5]" />
-            <span>{kind === "image" ? "SELECT IMAGE" : "SELECT FILE"}</span>
-          </button>
 
-          {/* Keterangan simulasi: tampil setelah memilih berkas */}
-          {picked && (
-            <div className="flex items-start gap-2 p-3 border-2 border-black bg-[#fef08a] font-mono text-[11px] shadow-neo-sm">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <p className="flex-1 min-w-0">
-                <strong className="break-all">{picked.name}</strong> dipilih sebagai SIMULASI. Berkas
-                belum diunggah, jadi isi kolom URL di atas agar tersimpan.
-              </p>
-              <button type="button" onClick={clearPicked} aria-label="Hapus pilihan berkas" className="cursor-pointer">
-                <X className="w-4 h-4" />
+          {/* Tombol Pemilih Berkas & Tombol Hapus Berkas Fisik */}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              disabled={isUploading}
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-[#bef264] border-2 border-black shadow-neo-sm text-xs font-black uppercase tracking-wider cursor-pointer transition-all duration-100 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin stroke-[2.5]" />
+                  <span>MENGUNGGAH ({uploadProgress}%)</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 stroke-[2.5]" />
+                  <span>{kind === "image" ? "UPLOAD IMAGE" : "UPLOAD FILE"}</span>
+                </>
+              )}
+            </button>
+
+            {/* Tombol Hapus Berkas Fisik jika ada file yang sedang terpasang */}
+            {trimmed && !isUploading && (
+              <button
+                type="button"
+                onClick={handleRemoveExistingFile}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#fb7185] hover:bg-[#f43f5e] border-2 border-black shadow-neo-sm text-xs font-black uppercase tracking-wider cursor-pointer transition-all duration-100 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                title="Hapus berkas fisik yang terpasang"
+              >
+                <Trash2 className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>HAPUS FILE</span>
+              </button>
+            )}
+
+            {/* Badge Lokasi Penyimpanan */}
+            <span className="font-mono text-[10px] text-neutral-500 border border-black/40 px-2 py-0.5 bg-neutral-100 uppercase">
+              Target: /uploads/ ({folder})
+            </span>
+          </div>
+
+          {/* Progress Bar Neo-Brutalism Saat Mengunggah */}
+          {isUploading && (
+            <div className="p-3 border-2 border-black bg-white shadow-neo-sm space-y-2">
+              <div className="flex items-center justify-between font-mono text-[11px] font-bold">
+                <span className="truncate max-w-[200px]">{uploadStatus?.fileName}</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="w-full h-3 border-2 border-black bg-neutral-200 overflow-hidden">
+                <div
+                  className="h-full bg-[#bef264] transition-all duration-200"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Status Berhasil Diunggah */}
+          {!isUploading && uploadStatus?.isSuccess && (
+            <div className="flex items-center justify-between gap-2 p-3 border-2 border-black bg-[#bef264] font-mono text-[11px] font-bold shadow-neo-sm">
+              <div className="flex items-center gap-2 min-w-0">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-black stroke-[2.5]" />
+                <span className="truncate">
+                  <strong>{uploadStatus.fileName}</strong> tersimpan di <code>/uploads/</code>!
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={clearUploadStatus}
+                aria-label="Tutup notifikasi berkas"
+                className="p-1 border border-black bg-white hover:bg-neutral-100 cursor-pointer shadow-neo-sm"
+              >
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
           )}
 
-          {/* Peringatan jika teks ada tetapi bukan URL yang valid */}
-          {trimmed && !urlOk && !picked && (
+          {/* Peringatan jika format URL tidak valid */}
+          {trimmed && !urlOk && !isUploading && (
             <p className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-red-700">
-              <AlertCircle className="w-3.5 h-3.5" />
-              Gunakan URL lengkap (https://...) atau path yang diawali "/".
+              <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>Gunakan URL lengkap (https://...) atau path lokal yang diawali "/".</span>
             </p>
           )}
         </div>
 
-        {/* Kotak pratinjau */}
+        {/* Kotak Pratinjau Neo-Brutalism */}
         <div
-          className={`w-full sm:w-44 shrink-0 border-2 border-black bg-neutral-100 shadow-neo-sm overflow-hidden flex items-center justify-center ${
+          className={`w-full sm:w-44 shrink-0 border-2 border-black bg-neutral-100 shadow-neo-sm overflow-hidden flex items-center justify-center relative ${
             kind === "image" ? (square ? "aspect-square" : "aspect-video") : "min-h-24"
           }`}
           aria-label={`Pratinjau ${label}`}
         >
+          {isUploading && (
+            <div className="absolute inset-0 bg-black/40 backdrop-blur-xs flex flex-col items-center justify-center text-white p-2 text-center">
+              <Loader2 className="w-6 h-6 animate-spin mb-1 text-[#bef264]" />
+              <span className="font-mono text-[10px] font-black">{uploadProgress}%</span>
+            </div>
+          )}
+
           {kind === "image" ? (
             imageSrc ? (
               <img
                 src={imageSrc}
                 alt={`Pratinjau ${label}`}
-                // Jika gambar gagal dimuat, catat URL-nya agar pratinjau menampilkan pesan galat
-                onError={() => !picked && setFailedUrl(trimmed)}
+                onError={() => !uploadStatus?.localPreviewUrl && setFailedUrl(trimmed)}
                 className="w-full h-full object-cover"
               />
             ) : (
               <div className="p-3 text-center font-mono text-[11px] font-bold uppercase text-neutral-500">
-                <ImageIcon className="w-6 h-6 mx-auto mb-1" />
-                {trimmed && urlOk && imageBroken ? "GAMBAR TIDAK DAPAT DIMUAT" : "BELUM ADA GAMBAR"}
+                <ImageIcon className="w-6 h-6 mx-auto mb-1 stroke-1" />
+                {trimmed && urlOk && imageBroken ? "GAMBAR RUSAK" : "BELUM ADA GAMBAR"}
               </div>
             )
           ) : (
             <div className="p-3 text-center font-mono text-[11px] font-bold w-full">
-              <FileText className="w-7 h-7 mx-auto mb-1" />
-              {picked ? (
-                <span className="break-all">{picked.name}</span>
+              <FileText className="w-7 h-7 mx-auto mb-1 stroke-1 text-black" />
+              {uploadStatus?.fileName ? (
+                <span className="break-all text-[10px] leading-tight block">
+                  {uploadStatus.fileName}
+                </span>
               ) : urlOk ? (
                 <a
                   href={trimmed}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 underline break-all"
+                  className="inline-flex items-center gap-1 underline break-all text-black hover:text-neutral-600"
                 >
-                  <span>BUKA BERKAS</span>
+                  <span>LIHAT BERKAS</span>
                   <ExternalLink className="w-3 h-3 shrink-0" />
                 </a>
               ) : (
@@ -218,7 +421,17 @@ export const AssetInput: FC<AssetInputProps> = ({
           )}
         </div>
       </div>
+
+      {/* Neo-Brutalism Modal Konfirmasi Hapus Berkas Fisik Kustom */}
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        title="HAPUS BERKAS FISIK?"
+        message={`Apakah Anda yakin ingin menghapus berkas fisik "${trimmed.replace("/uploads/", "")}" dari folder public/uploads/? Data berkas akan dihapus permanen dari penyimpanan.`}
+        confirmLabel="YA, HAPUS BERKAS"
+        cancelLabel="BATALKAN"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setIsConfirmOpen(false)}
+      />
     </div>
   );
 };
-

@@ -1,0 +1,48 @@
+rules_version = '2';
+
+// Aturan Keamanan Firebase Cloud Storage
+// Mengizinkan baca publik (untuk portofolio web) dan membatasi tulis hanya untuk admin terautentikasi.
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Fungsi pembantu: Memeriksa apakah pengguna sudah login sebagai admin
+    function isAdmin() {
+      return request.auth != null;
+    }
+
+    // Fungsi pembantu: Validasi ukuran file (maksimal 10MB untuk media dan dokumen)
+    function isUnderMaxSize() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // 1. Folder Foto Profil
+    match /profiles/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isUnderMaxSize() && request.resource.contentType.matches('image/.*');
+    }
+
+    // 2. Folder Dokumen Resume PDF
+    match /resumes/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isUnderMaxSize() && request.resource.contentType.matches('application/pdf|application/octet-stream');
+    }
+
+    // 3. Folder Proyek & Sertifikat
+    match /projects/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isUnderMaxSize() && request.resource.contentType.matches('image/.*');
+    }
+
+    match /certifications/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isUnderMaxSize() && request.resource.contentType.matches('image/.*');
+    }
+
+    // 4. Folder Aset Umum Cadangan
+    match /assets/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin() && isUnderMaxSize();
+    }
+  }
+}
+

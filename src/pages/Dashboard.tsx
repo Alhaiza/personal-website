@@ -28,6 +28,7 @@ import {
   getContactMessages,
   deleteContactMessage,
 } from "../services/firestoreService";
+import { deleteFileLocally } from "../services/storageService";
 import type {
   UserProfile,
   ProjectItem,
@@ -90,6 +91,7 @@ export const Dashboard: FC = () => {
     featured: true,
   });
   const [tagsInput, setTagsInput] = useState("React, TypeScript, Tailwind");
+  const [uploadingProjectImage, setUploadingProjectImage] = useState(false);
 
   // State lokal tambah sertifikasi baru
   const [newCert, setNewCert] = useState<Omit<CertificationItem, "id">>({
@@ -99,6 +101,7 @@ export const Dashboard: FC = () => {
     credentialUrl: "",
     imageUrl: "",
   });
+  const [uploadingCertImage, setUploadingCertImage] = useState(false);
 
   // State lokal tambah pengalaman baru
   const [newExp, setNewExp] = useState<Omit<ExperienceItem, "id">>({
@@ -145,6 +148,10 @@ export const Dashboard: FC = () => {
   // Tambah Proyek ke Firestore
   const handleAddProject = (e: FormEvent) => {
     e.preventDefault();
+    if (uploadingProjectImage) {
+      toast.error("Tunggu hingga gambar thumbnail selesai diunggah ke cloud.", "SEDANG MENGUNGGAH");
+      return;
+    }
     if (!newProject.title.trim()) return;
 
     try {
@@ -178,7 +185,7 @@ export const Dashboard: FC = () => {
   };
 
   // Hapus Proyek dari Firestore menggunakan Custom Neo-Brutalism Modal
-  const handleDeleteProject = (id: string, title?: string) => {
+  const handleDeleteProject = (id: string, title?: string, imageUrl?: string) => {
     setConfirmModal({
       isOpen: true,
       title: "HAPUS PROYEK?",
@@ -187,8 +194,12 @@ export const Dashboard: FC = () => {
         closeConfirmModal();
         try {
           await deleteProject(id);
+          // Hapus berkas gambar fisik lokal jika disimpan di /uploads/
+          if (imageUrl) {
+            await deleteFileLocally(imageUrl);
+          }
           updateContent({ projects: content.projects.filter((p) => p.id !== id) });
-          toast.success("Proyek berhasil dihapus dari Cloud Firestore.");
+          toast.success("Proyek dan berkas medianya berhasil dihapus.");
         } catch (err: unknown) {
           toast.error((err as Error).message || "Gagal menghapus proyek");
         }
@@ -199,6 +210,10 @@ export const Dashboard: FC = () => {
   // Tambah Sertifikasi ke Firestore
   const handleAddCert = (e: FormEvent) => {
     e.preventDefault();
+    if (uploadingCertImage) {
+      toast.error("Tunggu hingga gambar sertifikat selesai diunggah ke cloud.", "SEDANG MENGUNGGAH");
+      return;
+    }
     if (!newCert.title.trim()) return;
 
     try {
@@ -223,7 +238,7 @@ export const Dashboard: FC = () => {
   };
 
   // Hapus Sertifikasi dari Firestore menggunakan Custom Neo-Brutalism Modal
-  const handleDeleteCert = (id: string, title?: string) => {
+  const handleDeleteCert = (id: string, title?: string, imageUrl?: string) => {
     setConfirmModal({
       isOpen: true,
       title: "HAPUS SERTIFIKASI?",
@@ -232,8 +247,12 @@ export const Dashboard: FC = () => {
         closeConfirmModal();
         try {
           await deleteCertification(id);
+          // Hapus berkas gambar fisik lokal jika disimpan di /uploads/
+          if (imageUrl) {
+            await deleteFileLocally(imageUrl);
+          }
           updateContent({ certifications: content.certifications.filter((c) => c.id !== id) });
-          toast.success("Sertifikasi berhasil dihapus dari Cloud Firestore.");
+          toast.success("Sertifikasi dan berkas medianya berhasil dihapus.");
         } catch (err: unknown) {
           toast.error((err as Error).message || "Gagal menghapus sertifikasi");
         }
@@ -523,9 +542,11 @@ export const Dashboard: FC = () => {
                   label="COVER IMAGE URL"
                   hint="Thumbnail yang tampil di kartu proyek dan carousel Home"
                   kind="image"
+                  folder="projects"
                   required
                   value={newProject.imageUrl}
                   onChange={(value) => setNewProject({ ...newProject, imageUrl: value })}
+                  onUploadingChange={setUploadingProjectImage}
                   placeholder="https://... atau /gambar-proyek.jpg"
                 />
 
@@ -574,9 +595,15 @@ export const Dashboard: FC = () => {
                   </span>
                 </label>
 
-                <NeoButton type="submit" variant="purple" size="md">
+                <NeoButton
+                  type="submit"
+                  variant="purple"
+                  size="md"
+                  disabled={uploadingProjectImage}
+                  className={uploadingProjectImage ? "opacity-50 cursor-not-allowed" : ""}
+                >
                   <Plus className="w-4 h-4 stroke-[3]" />
-                  <span>TAMBAH PROYEK</span>
+                  <span>{uploadingProjectImage ? "MENGUNGGAH GAMBAR..." : "TAMBAH PROYEK"}</span>
                 </NeoButton>
               </form>
 
@@ -617,7 +644,7 @@ export const Dashboard: FC = () => {
                       <div className="mt-4 pt-3 border-t border-black flex justify-end">
                         <button
                           type="button"
-                          onClick={() => handleDeleteProject(proj.id, proj.title)}
+                          onClick={() => handleDeleteProject(proj.id, proj.title, proj.imageUrl)}
                           className="px-3 py-1 bg-[#fb7185] hover:bg-[#f43f5e] border border-black text-xs font-black tracking-wider uppercase flex items-center gap-1.5 shadow-neo-sm cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -697,12 +724,20 @@ export const Dashboard: FC = () => {
                   label="CERTIFICATE IMAGE URL"
                   hint="Thumbnail sertifikat (opsional)"
                   kind="image"
+                  folder="certifications"
                   value={newCert.imageUrl || ""}
                   onChange={(value) => setNewCert({ ...newCert, imageUrl: value })}
+                  onUploadingChange={setUploadingCertImage}
                   placeholder="https://... atau /sertifikat.jpg"
                 />
-                <NeoButton type="submit" variant="lime" size="sm">
-                  <span>TAMBAH SERTIFIKASI</span>
+                <NeoButton
+                  type="submit"
+                  variant="lime"
+                  size="sm"
+                  disabled={uploadingCertImage}
+                  className={uploadingCertImage ? "opacity-50 cursor-not-allowed" : ""}
+                >
+                  <span>{uploadingCertImage ? "MENGUNGGAH GAMBAR..." : "TAMBAH SERTIFIKASI"}</span>
                 </NeoButton>
               </form>
 
@@ -735,7 +770,7 @@ export const Dashboard: FC = () => {
                     <div className="mt-4 pt-3 border-t border-black flex justify-end">
                       <button
                         type="button"
-                        onClick={() => handleDeleteCert(c.id, c.title)}
+                        onClick={() => handleDeleteCert(c.id, c.title, c.imageUrl)}
                         className="px-2.5 py-1 bg-white border border-black text-xs font-bold shadow-neo-sm hover:bg-neutral-100 cursor-pointer"
                       >
                         DELETE

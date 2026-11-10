@@ -2,6 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAnalytics, isSupported } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -13,16 +14,19 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase App instance
+// Inisialisasi Firebase App instance
 export const app = initializeApp(firebaseConfig);
 
-// Initialize Cloud Firestore Database
+// Inisialisasi Cloud Firestore Database
 export const db = getFirestore(app);
 
-// Initialize Firebase Authentication
+// Inisialisasi Firebase Authentication
 export const auth = getAuth(app);
 
-// Initialize Firebase Analytics (conditionally if environment supports it)
+// Inisialisasi Firebase Cloud Storage untuk mengunggah dan mengelola aset media
+export const storage = getStorage(app);
+
+// Inisialisasi Firebase Analytics (hanya jika didukung oleh browser/lingkungan)
 export const analyticsPromise = isSupported().then((yes) =>
   yes ? getAnalytics(app) : null
 );
