@@ -1,1 +1,28 @@
 @import "tailwindcss";
+
+/* 
+  Custom Neo-Brutalist CSS Utilities & Backgrounds
+  Neo-brutalism relies on bold solid borders, heavy hard shadows, and geometric patterns.
+*/
+
+@layer utilities {
+  /* Grid pattern background used in the Hero left side & CTA section */
+  .bg-grid-pattern {
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 0.08) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Hard shadows for buttons and cards */
+  .shadow-neo {
+    box-shadow: 4px 4px 0px 0px #000000;
+  }
+
+  .shadow-neo-sm {
+    box-shadow: 2px 2px 0px 0px #000000;
+  }
+
+  .shadow-neo-lg {
+    box-shadow: 6px 6px 0px 0px #000000;
+  }
+}
