@@ -91,7 +91,7 @@ export const HeroSection: FC<HeroSectionProps> = ({ profile: propProfile }) => {
                   src={settings.profileImageUrl}
                   alt={profile.name || "Foto Profil"}
                   onError={() => setFailedImage(settings.profileImageUrl)}
-                  className="w-full h-full object-cover grayscale contrast-125"
+                  className="w-full h-full object-cover"
                   loading="eager"
                 />
               ) : (
