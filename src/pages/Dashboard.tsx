@@ -11,6 +11,8 @@ import {
   X,
   Star,
   Edit3,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { useAuth } from "../context/authContext";
 import { useSiteContent } from "../context/siteContentContext";
@@ -426,6 +428,20 @@ export const Dashboard: FC = () => {
   const handleSaveEditedExp = (updated: ExperienceItem) => {
     const nextExps = content.experiences.map((e) => (e.id === updated.id ? updated : e));
     updateContent({ experiences: nextExps });
+  };
+
+  // Reorder urutan posisi timeline pengalaman kerja (Move Up / Down)
+  const handleMoveExperience = (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (target < 0 || target >= content.experiences.length) return;
+    try {
+      const copy = [...content.experiences];
+      [copy[index], copy[target]] = [copy[target], copy[index]];
+      updateContent({ experiences: copy });
+      toast.info("Experience timeline order updated.", "ORDER CHANGED");
+    } catch (err: unknown) {
+      toast.error((err as Error).message || "Failed to change experience order");
+    }
   };
 
   // Hapus Pengalaman dari Firestore menggunakan Custom Neo-Brutalism Modal
@@ -1158,30 +1174,58 @@ export const Dashboard: FC = () => {
               </form>
 
               <div className="space-y-4">
-                {content.experiences.map((exp) => (
-                  <div key={exp.id} className="bg-white border-2 border-black p-4 shadow-neo flex items-start justify-between">
-                    <div>
-                      <h4 className="font-black text-sm uppercase text-black">{exp.role} • {exp.company}</h4>
-                      <p className="font-mono text-xs text-neutral-500 font-bold">{exp.period}</p>
-                      <p className="font-mono text-xs text-neutral-700 mt-1 max-w-xl">{exp.description}</p>
+                {content.experiences.map((exp, index) => (
+                  <div key={exp.id} className="bg-white border-2 border-black p-4 shadow-neo flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <span className="w-6 h-6 bg-[#bef264] border border-black flex items-center justify-center font-mono text-xs font-black shrink-0 mt-0.5">
+                        {index + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-black text-sm uppercase text-black">{exp.role} • {exp.company}</h4>
+                        <p className="font-mono text-xs text-neutral-500 font-bold">{exp.period}</p>
+                        <p className="font-mono text-xs text-neutral-700 mt-1 max-w-xl">{exp.description}</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setEditingExp(exp)}
-                        className="px-2.5 py-1 bg-[#bef264] border border-black text-xs font-black uppercase shadow-neo-sm hover:bg-[#a3e635] flex items-center gap-1 cursor-pointer"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        <span>EDIT</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteExp(exp.id, exp.role)}
-                        className="px-2.5 py-1 bg-[#fb7185] border border-black text-xs font-black uppercase shadow-neo-sm hover:bg-[#f43f5e] flex items-center gap-1 cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>DELETE</span>
-                      </button>
+                    <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-dashed border-neutral-300">
+                      <div className="flex gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleMoveExperience(index, -1)}
+                          disabled={index === 0}
+                          aria-label={`Move up ${exp.role}`}
+                          className="w-7 h-7 border border-black bg-white hover:bg-[#bef264] shadow-neo-sm flex items-center justify-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                        >
+                          <ArrowUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleMoveExperience(index, 1)}
+                          disabled={index === content.experiences.length - 1}
+                          aria-label={`Move down ${exp.role}`}
+                          className="w-7 h-7 border border-black bg-white hover:bg-[#bef264] shadow-neo-sm flex items-center justify-center cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+                        >
+                          <ArrowDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditingExp(exp)}
+                          className="px-2.5 py-1 bg-[#bef264] border border-black text-xs font-black uppercase shadow-neo-sm hover:bg-[#a3e635] flex items-center gap-1 cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>EDIT</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteExp(exp.id, exp.role)}
+                          className="px-2.5 py-1 bg-[#fb7185] border border-black text-xs font-black uppercase shadow-neo-sm hover:bg-[#f43f5e] flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>DELETE</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
