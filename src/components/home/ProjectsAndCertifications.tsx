@@ -1,6 +1,7 @@
 import { useState, type FC } from "react";
-import { ArrowRight, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, ExternalLink, ZoomIn } from "lucide-react";
 import { NeoButton } from "../common/NeoButton";
+import { ImageLightboxModal } from "../common/ImageLightboxModal";
 import { useSiteContent } from "../../context/siteContentContext";
 import type { ProjectItem, CertificationItem } from "../../types";
 
@@ -40,6 +41,9 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
   const displayCerts = featuredCerts.length > 0 ? featuredCerts : certifications;
 
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // State Lightbox untuk perbesar gambar proyek carousel
+  const [activePreview, setActivePreview] = useState<ProjectItem | null>(null);
 
   const handlePrev = () => {
     setCurrentIndex((prev) => (prev === 0 ? displayProjects.length - 1 : prev - 1));
@@ -95,16 +99,30 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
           {/* Kartu Showcase Proyek */}
           {currentProject ? (
             <div className="border-2 border-black p-4 sm:p-6 bg-white shadow-neo">
-              {/* Gambar / Cover Asli Proyek (Menggantikan ilustrasi statis 24°C) */}
+              {/* Gambar / Cover Asli Proyek (Dapat diklik untuk Zoom) */}
               <div className="border-2 border-black bg-[#fb7185] p-3 sm:p-4 mb-6">
-                <div className="border-2 border-black bg-neutral-100 overflow-hidden relative aspect-video flex items-center justify-center">
+                <div
+                  onClick={() => currentProject.imageUrl && setActivePreview(currentProject)}
+                  className={`border-2 border-black bg-neutral-100 overflow-hidden relative aspect-video flex items-center justify-center group ${
+                    currentProject.imageUrl ? "cursor-pointer" : ""
+                  }`}
+                  title={currentProject.imageUrl ? "Click to view full image" : ""}
+                >
                   {currentProject.imageUrl ? (
-                    <img
-                      src={currentProject.imageUrl}
-                      alt={currentProject.title}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
+                    <>
+                      <img
+                        src={currentProject.imageUrl}
+                        alt={currentProject.title}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white">
+                        <div className="px-3 py-1.5 bg-[#bef264] text-black border-2 border-black shadow-neo-sm font-mono text-xs font-black uppercase flex items-center gap-1.5 transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                          <ZoomIn className="w-4 h-4 stroke-[3]" />
+                          <span>ZOOM IMAGE</span>
+                        </div>
+                      </div>
+                    </>
                   ) : (
                     <div className="w-full h-full bg-[#bef264] flex items-center justify-center font-mono font-black text-xl text-black">
                       {currentProject.title}
@@ -227,6 +245,15 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
           </NeoButton>
         </div>
       </div>
+
+      {/* Lightbox Modal untuk Preview Gambar Proyek */}
+      <ImageLightboxModal
+        isOpen={Boolean(activePreview)}
+        onClose={() => setActivePreview(null)}
+        imageUrl={activePreview?.imageUrl || ""}
+        title={activePreview?.title || "Project Preview"}
+        projectUrl={activePreview?.projectUrl}
+      />
     </section>
   );
 };

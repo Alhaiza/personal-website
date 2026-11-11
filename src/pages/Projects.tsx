@@ -1,14 +1,16 @@
-import type { FC } from "react";
-import { ArrowRight, ExternalLink, Sparkles } from "lucide-react";
+import { useState, type FC } from "react";
+import { ArrowRight, ExternalLink, Sparkles, ZoomIn } from "lucide-react";
 import { NeoButton } from "../components/common/NeoButton";
+import { ImageLightboxModal } from "../components/common/ImageLightboxModal";
 import { useSiteContent } from "../context/siteContentContext";
+import type { ProjectItem } from "../types";
 
 /**
  * Komponen Halaman Proyek (`/projects`)
  * 
  * Sepenuhnya dinamis membaca daftar proyek dari `SiteContentContext`.
  * Menampilkan:
- * - Cover gambar (`imageUrl`)
+ * - Cover gambar (`imageUrl`) dengan fitur klik Zoom-In / Lightbox
  * - Tautan live demo (`projectUrl`)
  * - Tautan repositori GitHub (`githubUrl`)
  */
@@ -17,16 +19,19 @@ export const Projects: FC = () => {
   const { content } = useSiteContent();
   const { projects } = content;
 
+  // State untuk Lightbox Pratinjau Gambar Penuh
+  const [activePreview, setActivePreview] = useState<ProjectItem | null>(null);
+
   return (
     <div className="w-full bg-white p-6 sm:p-12">
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-8 mb-10 border-b-2 border-black">
         <div>
           <div className="inline-flex items-center gap-1.5 bg-[#bef264] text-black text-xs font-black uppercase tracking-wider px-3 py-1 border-2 border-black shadow-neo-sm mb-4 select-none">
-            <Sparkles className="w-3.5 h-3.5" /> ARSIP PORTOFOLIO
+            <Sparkles className="w-3.5 h-3.5" /> PORTFOLIO ARCHIVE
           </div>
           <h1 className="text-3xl sm:text-5xl font-black uppercase tracking-tight text-black">
-            SEMUA PROYEK
+            ALL PROJECTS
           </h1>
           <p className="font-mono text-xs sm:text-sm text-neutral-700 mt-2 max-w-xl">
             A curated showcase of web applications, open-source projects, and client engineering solutions.
@@ -47,16 +52,31 @@ export const Projects: FC = () => {
             className="border-2 border-black bg-white p-6 shadow-neo hover:-translate-x-1 hover:-translate-y-1 hover:shadow-neo-lg transition-all flex flex-col justify-between"
           >
             <div>
-              {/* Wadah gambar cover */}
+              {/* Wadah gambar cover interaktif dengan trigger Zoom */}
               <div className="border-2 border-black bg-[#fb7185] p-3 mb-6">
-                <div className="border-2 border-black bg-neutral-100 overflow-hidden aspect-video relative flex items-center justify-center">
+                <div
+                  onClick={() => project.imageUrl && setActivePreview(project)}
+                  className={`border-2 border-black bg-neutral-100 overflow-hidden aspect-video relative flex items-center justify-center group ${
+                    project.imageUrl ? "cursor-pointer" : ""
+                  }`}
+                  title={project.imageUrl ? "Click to view full image" : ""}
+                >
                   {project.imageUrl ? (
-                    <img
-                      src={project.imageUrl}
-                      alt={project.title}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
+                    <>
+                      <img
+                        src={project.imageUrl}
+                        alt={project.title}
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        loading="lazy"
+                      />
+                      {/* Overlay Tombol Zoom Saat Hover */}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 text-white">
+                        <div className="px-3 py-1.5 bg-[#bef264] text-black border-2 border-black shadow-neo-sm font-mono text-xs font-black uppercase flex items-center gap-1.5 transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                          <ZoomIn className="w-4 h-4 stroke-[3]" />
+                          <span>ZOOM IMAGE</span>
+                        </div>
+                      </div>
+                    </>
                   ) : (
                     <div className="w-full h-full bg-[#bef264] flex items-center justify-center font-mono font-black text-xl text-black">
                       {project.title}
@@ -142,6 +162,15 @@ export const Projects: FC = () => {
           </article>
         ))}
       </div>
+
+      {/* Lightbox Pratinjau Gambar Penuh */}
+      <ImageLightboxModal
+        isOpen={Boolean(activePreview)}
+        onClose={() => setActivePreview(null)}
+        imageUrl={activePreview?.imageUrl || ""}
+        title={activePreview?.title || "Project Preview"}
+        projectUrl={activePreview?.projectUrl}
+      />
     </div>
   );
 };
