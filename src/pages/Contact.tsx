@@ -60,15 +60,15 @@ export const Contact: FC = () => {
         {/* Kolom Kiri: Informasi Kontak Langsung Terikat Dinamis */}
         <div className="lg:col-span-5 bg-white text-black border-2 border-black p-6 sm:p-8 shadow-neo">
           <div className="inline-flex items-center gap-1.5 bg-[#fb7185] text-black text-xs font-black uppercase tracking-wider px-3 py-1 border-2 border-black shadow-neo-sm mb-6 select-none">
-            <Sparkles className="w-3.5 h-3.5" /> HUBUNGI SAYA
+            <Sparkles className="w-3.5 h-3.5" /> GET IN TOUCH
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight text-black mb-4">
-            MARI BICARA.
+            LET'S TALK.
           </h1>
 
           <p className="font-mono text-xs sm:text-sm text-neutral-700 leading-relaxed mb-8">
-            Punya ide proyek, tawaran freelance, atau sekadar ingin menyapa? Kirimkan pesan Anda dan saya akan membalasnya dalam 24 jam.
+            Have a project in mind, a freelance inquiry, or just want to say hi? Send me a message and I'll get back to you within 24 hours.
           </p>
 
           <div className="space-y-4 font-mono text-xs mb-8">
@@ -93,7 +93,7 @@ export const Contact: FC = () => {
 
           <div className="pt-6 border-t-2 border-dashed border-neutral-300">
             <p className="text-[10px] font-black uppercase tracking-widest text-black mb-3">
-              IKUTI SAYA
+              CONNECT WITH ME
             </p>
             <SocialIcons />
           </div>
@@ -107,10 +107,10 @@ export const Contact: FC = () => {
                 <CheckCircle2 className="w-8 h-8 text-black stroke-[2.5]" />
               </div>
               <h2 className="text-2xl font-black uppercase tracking-tight mb-2">
-                PESAN TERKIRIM!
+                MESSAGE SENT!
               </h2>
               <p className="font-mono text-xs text-neutral-600 max-w-sm mb-8">
-                Terima kasih telah menghubungi saya. Pesan Anda telah diterima dan akan segera saya balas.
+                Thank you for reaching out. Your message has been received and I will get back to you shortly.
               </p>
               <NeoButton
                 variant="white"
