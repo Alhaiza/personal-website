@@ -190,7 +190,9 @@ export const deleteCertification = async (id: string): Promise<void> => {
 // ================= 7. PENGALAMAN KARIER (experiences) =================
 export const getExperiences = async (): Promise<ExperienceItem[]> => {
   try {
-    const snap = await getDocs(collection(db, "experiences"));
+    // Coba query dengan pengurutan berdasarkan `order`
+    const q = query(collection(db, "experiences"), orderBy("order", "asc"));
+    const snap = await getDocs(q);
     if (!snap.empty) {
       return snap.docs.map((d) => ({
         id: d.id,
@@ -198,12 +200,25 @@ export const getExperiences = async (): Promise<ExperienceItem[]> => {
       }));
     }
   } catch (err) {
-    console.warn("Gagal memuat experiences dari Firestore, memakai fallback:", err);
+    console.warn("Gagal memuat experiences dengan orderBy(order), mencoba fallback query:", err);
+    try {
+      const snap = await getDocs(collection(db, "experiences"));
+      if (!snap.empty) {
+        const items = snap.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as Omit<ExperienceItem, "id">),
+        }));
+        // Sort in memory jika dokumen lama belum memiliki indeks Firestore
+        return items.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      }
+    } catch (innerErr) {
+      console.warn("Fallback query experiences gagal:", innerErr);
+    }
   }
   return mockSiteContent.experiences;
 };
 
-export const saveExperience = async (exp: ExperienceItem): Promise<void> => {
+export const saveExperience = async (exp: ExperienceItem, orderIndex?: number): Promise<void> => {
   const docRef = doc(db, "experiences", exp.id);
   await setDoc(docRef, {
     role: exp.role,
@@ -211,6 +226,7 @@ export const saveExperience = async (exp: ExperienceItem): Promise<void> => {
     period: exp.period,
     description: exp.description,
     current: Boolean(exp.current),
+    order: typeof exp.order === "number" ? exp.order : (orderIndex ?? 0),
     updatedAt: serverTimestamp(),
   });
 };

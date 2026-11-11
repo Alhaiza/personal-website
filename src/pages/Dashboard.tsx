@@ -409,9 +409,16 @@ export const Dashboard: FC = () => {
       const exp: ExperienceItem = {
         id: crypto.randomUUID(),
         ...newExp,
+        order: 0,
       };
 
-      updateContent({ experiences: [exp, ...content.experiences] });
+      // Buat urutan baru: elemen baru di index 0, sisanya bergeser order-nya
+      const updatedExperiences = [exp, ...content.experiences].map((item, idx) => ({
+        ...item,
+        order: idx,
+      }));
+
+      updateContent({ experiences: updatedExperiences });
       toast.success("New experience saved to Firestore!");
 
       setNewExp({
@@ -439,7 +446,11 @@ export const Dashboard: FC = () => {
     try {
       const copy = [...content.experiences];
       [copy[index], copy[target]] = [copy[target], copy[index]];
-      updateContent({ experiences: copy });
+      const ordered = copy.map((item, idx) => ({
+        ...item,
+        order: idx,
+      }));
+      updateContent({ experiences: ordered });
       toast.info("Experience timeline order updated.", "ORDER CHANGED");
     } catch (err: unknown) {
       toast.error((err as Error).message || "Failed to change experience order");

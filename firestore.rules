@@ -85,6 +85,7 @@ service cloud.firestore {
     //   - company: string (required, 1-200 chars)
     //   - period: string (required, 1-100 chars)
     //   - description: string (required, 1-5000 chars)
+    //   - current: bool (optional)
     //   - order: number (optional)
     //   - createdAt: timestamp (optional, immutable on update)
     //   - updatedAt: timestamp (optional)
@@ -234,11 +235,12 @@ service cloud.firestore {
 
     function isValidExperience(data) {
       return data.keys().hasAll(['role', 'company', 'period', 'description']) &&
-        data.keys().hasOnly(['role', 'company', 'period', 'description', 'order', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['role', 'company', 'period', 'description', 'current', 'order', 'createdAt', 'updatedAt']) &&
         isValidString(data.role, 1, 200) &&
         isValidString(data.company, 1, 200) &&
         isValidString(data.period, 1, 100) &&
         isValidString(data.description, 1, 5000) &&
+        isValidOptionalBool(data, 'current') &&
         isValidOptionalNumber(data, 'order') &&
         isValidOptionalTimestamp(data, 'createdAt') &&
         isValidOptionalTimestamp(data, 'updatedAt');

@@ -104,7 +104,9 @@ export const SiteContentProvider: FC<{ children: ReactNode }> = ({ children }) =
       patch.certifications.forEach((c) => promises.push(saveCertification(c)));
     }
     if (patch.experiences) {
-      patch.experiences.forEach((exp) => promises.push(saveExperience(exp)));
+      patch.experiences.forEach((exp, idx) => {
+        promises.push(saveExperience({ ...exp, order: typeof exp.order === "number" ? exp.order : idx }, idx));
+      });
     }
     if (patch.skills) {
       patch.skills.forEach((s) => promises.push(saveSkill(s)));
