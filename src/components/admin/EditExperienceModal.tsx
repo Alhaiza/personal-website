@@ -133,6 +133,34 @@ const EditExperienceModalContent: FC<ContentProps> = ({
             />
           </div>
 
+          <label
+            className="flex items-start gap-3 p-3.5 border-2 border-black shadow-neo-sm bg-neutral-50 hover:bg-[#bef264]/20 cursor-pointer select-none transition-colors"
+          >
+            <input
+              type="checkbox"
+              checked={Boolean(form.current)}
+              onChange={(e) => {
+                const isCurrent = e.target.checked;
+                let nextPeriod = form.period;
+                if (isCurrent && !form.period.toUpperCase().includes("PRESENT")) {
+                  const parts = form.period.split("-");
+                  const startYear = parts[0]?.trim() || "2025";
+                  nextPeriod = `${startYear} - PRESENT`;
+                }
+                setForm({ ...form, current: isCurrent, period: nextPeriod });
+              }}
+              className="w-5 h-5 accent-black cursor-pointer mt-0.5"
+            />
+            <div className="flex-1">
+              <span className="text-xs font-black uppercase tracking-wider">
+                CURRENT POSITION (PRESENT JOB)
+              </span>
+              <p className="font-mono text-[11px] text-neutral-600 mt-0.5">
+                Check this if you are currently working in this role. It will display a "PRESENT" badge on your timeline.
+              </p>
+            </div>
+          </label>
+
           <div>
             <label className="block text-xs font-black uppercase tracking-wider mb-1">
               DESCRIPTION

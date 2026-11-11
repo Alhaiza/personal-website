@@ -36,6 +36,7 @@ export interface ExperienceItem {
   company: string;
   period: string;
   description: string;
+  current?: boolean; // true = pekerjaan saat ini (Present job)
 }
 
 // Daftar ikon bawaan atau fallback untuk skill

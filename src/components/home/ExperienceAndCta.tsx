@@ -42,9 +42,16 @@ export const ExperienceAndCta: FC<ExperienceAndCtaProps> = ({ experiences: propE
 
               {/* Baris Judul Jabatan & Periode */}
               <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 mb-2">
-                <h3 className="text-xs sm:text-sm font-black tracking-tight text-black uppercase">
-                  {exp.role} <span className="text-neutral-400">•</span> {exp.company}
-                </h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-xs sm:text-sm font-black tracking-tight text-black uppercase">
+                    {exp.role} <span className="text-neutral-400">•</span> {exp.company}
+                  </h3>
+                  {exp.current && (
+                    <span className="px-1.5 py-0.5 bg-[#bef264] border border-black font-mono text-[9px] font-black uppercase shadow-neo-sm">
+                      PRESENT
+                    </span>
+                  )}
+                </div>
                 <span className="font-mono text-[11px] font-bold text-neutral-600 uppercase">
                   {exp.period}
                 </span>

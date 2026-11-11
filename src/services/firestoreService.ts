@@ -210,6 +210,7 @@ export const saveExperience = async (exp: ExperienceItem): Promise<void> => {
     company: exp.company,
     period: exp.period,
     description: exp.description,
+    current: Boolean(exp.current),
     updatedAt: serverTimestamp(),
   });
 };

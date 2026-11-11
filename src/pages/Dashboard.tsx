@@ -133,8 +133,9 @@ export const Dashboard: FC = () => {
   const [newExp, setNewExp] = useState<Omit<ExperienceItem, "id">>({
     role: "",
     company: "",
-    period: "2024 - PRESENT",
+    period: "2025 - PRESENT",
     description: "",
+    current: true,
   });
 
   // State pesan kontak dari Firestore
@@ -416,8 +417,9 @@ export const Dashboard: FC = () => {
       setNewExp({
         role: "",
         company: "",
-        period: "2024 - PRESENT",
+        period: "2025 - PRESENT",
         description: "",
+        current: false,
       });
     } catch (err: unknown) {
       toast.error((err as Error).message || "Failed to add experience");
@@ -1151,12 +1153,41 @@ export const Dashboard: FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="2022 - PRESENT"
+                    placeholder="2025 - PRESENT"
                     value={newExp.period}
                     onChange={(e) => setNewExp({ ...newExp, period: e.target.value })}
                     className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm"
                   />
                 </div>
+
+                <label
+                  className="flex items-start gap-3 p-3.5 border-2 border-black shadow-neo-sm bg-neutral-50 hover:bg-[#bef264]/20 cursor-pointer select-none transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    checked={Boolean(newExp.current)}
+                    onChange={(e) => {
+                      const isCurrent = e.target.checked;
+                      let nextPeriod = newExp.period;
+                      if (isCurrent && !newExp.period.toUpperCase().includes("PRESENT")) {
+                        const parts = newExp.period.split("-");
+                        const startYear = parts[0]?.trim() || "2025";
+                        nextPeriod = `${startYear} - PRESENT`;
+                      }
+                      setNewExp({ ...newExp, current: isCurrent, period: nextPeriod });
+                    }}
+                    className="w-5 h-5 accent-black cursor-pointer mt-0.5"
+                  />
+                  <div className="flex-1">
+                    <span className="text-xs font-black uppercase tracking-wider">
+                      CURRENT POSITION (PRESENT JOB)
+                    </span>
+                    <p className="font-mono text-[11px] text-neutral-600 mt-0.5">
+                      Check this if you are currently working in this role. It will display a "PRESENT" badge on your public timeline.
+                    </p>
+                  </div>
+                </label>
+
                 <div>
                   <label className="block text-xs font-black uppercase tracking-wider mb-1">DESCRIPTION</label>
                   <textarea
@@ -1181,7 +1212,14 @@ export const Dashboard: FC = () => {
                         {index + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-black text-sm uppercase text-black">{exp.role} • {exp.company}</h4>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-black text-sm uppercase text-black">{exp.role} • {exp.company}</h4>
+                          {exp.current && (
+                            <span className="px-1.5 py-0.5 bg-[#bef264] border border-black font-mono text-[9px] font-black uppercase shadow-neo-sm">
+                              PRESENT
+                            </span>
+                          )}
+                        </div>
                         <p className="font-mono text-xs text-neutral-500 font-bold">{exp.period}</p>
                         <p className="font-mono text-xs text-neutral-700 mt-1 max-w-xl">{exp.description}</p>
                       </div>
