@@ -1,5 +1,6 @@
 import { useState, type FC } from "react";
-import { ArrowRight, ChevronLeft, ChevronRight, ExternalLink, ZoomIn } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowRight, ChevronLeft, ChevronRight, ExternalLink, ZoomIn, Info } from "lucide-react";
 import { NeoButton } from "../common/NeoButton";
 import { ImageLightboxModal } from "../common/ImageLightboxModal";
 import { useSiteContent } from "../../context/siteContentContext";
@@ -132,9 +133,12 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
               </div>
 
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xl font-black tracking-tight text-black uppercase">
+                <Link
+                  to={`/projects/${currentProject.id}`}
+                  className="text-xl font-black tracking-tight text-black uppercase hover:text-[#6366f1] hover:underline"
+                >
                   {currentProject.title}
-                </h3>
+                </Link>
                 {currentProject.projectUrl && (
                   <a
                     href={currentProject.projectUrl}
@@ -163,10 +167,17 @@ export const ProjectsAndCertifications: FC<ProjectsAndCertificationsProps> = ({
                 ))}
               </div>
 
-              <NeoButton size="sm" variant="white" to="/projects">
-                <span>EXPLORE ALL IN ARCHIVE</span>
-                <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
-              </NeoButton>
+              <div className="flex flex-wrap items-center gap-3">
+                <NeoButton size="sm" variant="lime" to={`/projects/${currentProject.id}`}>
+                  <Info className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>VIEW DETAILS</span>
+                </NeoButton>
+
+                <NeoButton size="sm" variant="white" to="/projects">
+                  <span>EXPLORE ALL IN ARCHIVE</span>
+                  <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
+                </NeoButton>
+              </div>
             </div>
           ) : (
             <div className="p-8 border-2 border-black bg-white font-mono text-xs text-center font-bold">

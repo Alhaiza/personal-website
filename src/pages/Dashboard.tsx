@@ -24,6 +24,7 @@ import { SkillsManager } from "../components/admin/SkillsManager";
 import { SiteSettingsForm } from "../components/admin/SiteSettingsForm";
 import { AdminSidebar } from "../components/admin/AdminSidebar";
 import { AssetInput } from "../components/admin/AssetInput";
+import { RichTextEditor } from "../components/common/RichTextEditor";
 import { EditProjectModal } from "../components/admin/EditProjectModal";
 import { EditCertificationModal } from "../components/admin/EditCertificationModal";
 import { EditExperienceModal } from "../components/admin/EditExperienceModal";
@@ -221,6 +222,7 @@ export const Dashboard: FC = () => {
         projectUrl: "",
         githubUrl: "",
         featured: false,
+        content: "",
       });
       setTagsInput("");
     } catch (err: unknown) {
@@ -688,17 +690,26 @@ export const Dashboard: FC = () => {
 
                 <div>
                   <label className="block text-xs font-black uppercase tracking-wider mb-1">
-                    DESCRIPTION
+                    ABOUT PROJECT (SHORT INTRO)
                   </label>
                   <textarea
                     rows={2}
                     required
-                    placeholder="Short summary of features..."
+                    placeholder="Short introductory summary before detailed product breakdown..."
                     value={newProject.description}
                     onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
                     className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm resize-none"
                   />
                 </div>
+
+                <RichTextEditor
+                  id="new-project-content"
+                  label="PRODUCT DETAILS & ARCHITECTURE (WYSIWYG)"
+                  value={newProject.content || ""}
+                  onChange={(html) => setNewProject({ ...newProject, content: html })}
+                  placeholder="Write rich formatted product overview, system architecture, engineering challenges..."
+                  minHeight="180px"
+                />
 
                 <div>
                   <label className="block text-xs font-black uppercase tracking-wider mb-1">

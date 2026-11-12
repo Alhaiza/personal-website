@@ -60,6 +60,7 @@ service cloud.firestore {
     //   - imageUrl: string (required, 1-1000 chars)
     //   - projectUrl: string (optional, 0-1000 chars)
     //   - githubUrl: string (optional, 0-1000 chars)
+    //   - content: string (optional, rich text content up to 50k chars)
     //   - featured: bool (optional)
     //   - order: number (optional)
     //   - createdAt: timestamp (optional, immutable on update)
@@ -205,7 +206,7 @@ service cloud.firestore {
 
     function isValidProject(data) {
       return data.keys().hasAll(['title', 'description', 'tags', 'imageUrl']) &&
-        data.keys().hasOnly(['title', 'description', 'tags', 'imageUrl', 'projectUrl', 'githubUrl', 'featured', 'order', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['title', 'description', 'tags', 'imageUrl', 'projectUrl', 'githubUrl', 'content', 'featured', 'order', 'createdAt', 'updatedAt']) &&
         isValidString(data.title, 1, 200) &&
         isValidString(data.description, 1, 5000) &&
         isValidString(data.imageUrl, 1, 1000) &&
@@ -213,6 +214,7 @@ service cloud.firestore {
         data.tags.size() <= 20 &&
         isValidOptionalString(data, 'projectUrl', 0, 1000) &&
         isValidOptionalString(data, 'githubUrl', 0, 1000) &&
+        isValidOptionalString(data, 'content', 0, 50000) &&
         isValidOptionalBool(data, 'featured') &&
         isValidOptionalNumber(data, 'order') &&
         isValidOptionalTimestamp(data, 'createdAt') &&

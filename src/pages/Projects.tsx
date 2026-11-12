@@ -1,5 +1,6 @@
 import { useState, type FC } from "react";
-import { ArrowRight, ExternalLink, Sparkles, ZoomIn } from "lucide-react";
+import { Link } from "react-router-dom";
+import { ArrowRight, ExternalLink, Sparkles, ZoomIn, Info } from "lucide-react";
 import { NeoButton } from "../components/common/NeoButton";
 import { ImageLightboxModal } from "../components/common/ImageLightboxModal";
 import { useSiteContent } from "../context/siteContentContext";
@@ -87,11 +88,14 @@ export const Projects: FC = () => {
 
               {/* Judul & Status */}
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-xl font-black uppercase tracking-tight text-black">
+                <Link
+                  to={`/projects/${project.id}`}
+                  className="text-xl font-black uppercase tracking-tight text-black hover:text-[#6366f1] hover:underline"
+                >
                   {project.title}
-                </h2>
+                </Link>
                 {project.featured && (
-                  <span className="text-[10px] font-mono font-bold bg-[#bef264] px-2 py-0.5 border border-black shadow-neo-sm uppercase">
+                  <span className="text-[10px] font-mono font-bold bg-[#bef264] px-2 py-0.5 border border-black shadow-neo-sm uppercase shrink-0">
                     FEATURED
                   </span>
                 )}
@@ -115,14 +119,22 @@ export const Projects: FC = () => {
             </div>
 
             {/* Tombol Aksi di Bawah Kartu */}
-            <div className="flex items-center justify-between pt-4 border-t-2 border-dashed border-neutral-200">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between pt-4 border-t-2 border-dashed border-neutral-200 gap-2">
+              <div className="flex items-center gap-2">
+                <Link
+                  to={`/projects/${project.id}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#bef264] hover:bg-[#a3e635] border-2 border-black shadow-neo-sm font-mono text-xs font-black uppercase text-black"
+                >
+                  <Info className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>DETAILS</span>
+                </Link>
+
                 {project.projectUrl && (
                   <a
                     href={project.projectUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="p-2 border border-black bg-white hover:bg-[#bef264] shadow-neo-sm transition"
+                    className="p-1.5 border border-black bg-white hover:bg-[#bef264] shadow-neo-sm transition"
                     aria-label="View Live Project"
                   >
                     <ExternalLink className="w-4 h-4 text-black" />
@@ -133,7 +145,7 @@ export const Projects: FC = () => {
                     href={project.githubUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="p-2 border border-black bg-white hover:bg-[#bef264] shadow-neo-sm transition"
+                    className="p-1.5 border border-black bg-white hover:bg-[#bef264] shadow-neo-sm transition"
                     aria-label="View Source Code"
                   >
                     <svg className="w-4 h-4 fill-current text-black" viewBox="0 0 24 24">

@@ -1,6 +1,7 @@
 import { useState, type FC, type FormEvent } from "react";
 import { X, Save, Edit3 } from "lucide-react";
 import { AssetInput } from "./AssetInput";
+import { RichTextEditor } from "../common/RichTextEditor";
 import { NeoButton } from "../common/NeoButton";
 import { useToast } from "../common/toastContext";
 import type { ProjectItem } from "../../types";
@@ -147,16 +148,26 @@ const EditProjectModalContent: FC<ContentProps> = ({
 
           <div>
             <label className="block text-xs font-black uppercase tracking-wider mb-1">
-              DESCRIPTION
+              ABOUT PROJECT (SHORT SUMMARY)
             </label>
             <textarea
               rows={3}
               required
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Short introductory summary before detailed product breakdown..."
               className="w-full border-2 border-black p-2.5 font-mono text-xs shadow-neo-sm resize-none focus:bg-neutral-50 focus:outline-none"
             />
           </div>
+
+          <RichTextEditor
+            id="edit-project-content"
+            label="PRODUCT DETAILS & ARCHITECTURE (WYSIWYG CONTENT)"
+            value={form.content || ""}
+            onChange={(html) => setForm({ ...form, content: html })}
+            placeholder="Write rich formatted product overview, system architecture, engineering challenges, screenshots, lists..."
+            minHeight="220px"
+          />
 
           <div>
             <label className="block text-xs font-black uppercase tracking-wider mb-1">

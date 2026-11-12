@@ -9,6 +9,7 @@ import { RequireAuth } from "./components/admin/RequireAuth";
 // Halaman Publik Dedikasi
 import { Home } from "./pages/Home";
 import { Projects } from "./pages/Projects";
+import { ProjectDetail } from "./pages/ProjectDetail";
 import { Certifications } from "./pages/Certifications";
 import { Skills } from "./pages/Skills";
 import { Experience } from "./pages/Experience";
@@ -42,6 +43,7 @@ const App: FC = () => {
               <Route path="/" element={<RootLayout />}>
                 <Route index element={<Home />} />
                 <Route path="projects" element={<Projects />} />
+                <Route path="projects/:id" element={<ProjectDetail />} />
                 <Route path="certifications" element={<Certifications />} />
                 <Route path="skills" element={<Skills />} />
                 <Route path="experience" element={<Experience />} />

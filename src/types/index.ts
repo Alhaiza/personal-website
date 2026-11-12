@@ -10,12 +10,14 @@
 export interface ProjectItem {
   id: string;
   title: string;
-  description: string;
+  description: string; // Intermezo "About Project" sebelum detail mendalam
   tags: string[];
   imageUrl: string;
   projectUrl?: string; // tautan demo langsung
   githubUrl?: string; // tautan repositori
   featured?: boolean; // true = tampil di carousel "Featured Projects" pada Home
+  order?: number; // urutan posisi proyek
+  content?: string; // Rich-text HTML detail project dari WYSIWYG editor
 }
 
 // Satu sertifikasi

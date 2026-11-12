@@ -146,6 +146,8 @@ export const saveProject = async (project: ProjectItem): Promise<void> => {
     projectUrl: project.projectUrl || "",
     githubUrl: project.githubUrl || "",
     featured: Boolean(project.featured),
+    content: project.content || "",
+    order: typeof project.order === "number" ? project.order : 0,
     updatedAt: serverTimestamp(),
   });
 };
