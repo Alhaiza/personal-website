@@ -16,6 +16,17 @@ import { NotFound } from "./NotFound";
  * 5. Tautan live demo dan repositori GitHub.
  */
 
+// Helper function untuk mendecode HTML entities jika konten ter-escape
+const decodeHtml = (html: string): string => {
+  if (!html) return "";
+  // Jika konten mengandung entity seperti &lt;h2&gt; atau &lt;p&gt;, decode terlebih dahulu
+  if (html.includes("&lt;") && html.includes("&gt;")) {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    return doc.body.textContent || html;
+  }
+  return html;
+};
+
 export const ProjectDetail: FC = () => {
   const { id } = useParams<{ id: string }>();
   const { content } = useSiteContent();
@@ -153,7 +164,7 @@ export const ProjectDetail: FC = () => {
               [&_pre]:bg-neutral-900 [&_pre]:text-neutral-100 [&_pre]:p-4 [&_pre]:border-2 [&_pre]:border-black [&_pre]:shadow-neo-sm [&_pre]:overflow-x-auto [&_pre]:my-3
               [&_a]:font-bold [&_a]:underline [&_a]:text-[#6366f1]
               "
-              dangerouslySetInnerHTML={{ __html: project.content }}
+              dangerouslySetInnerHTML={{ __html: decodeHtml(project.content) }}
             />
           </section>
         ) : null}
@@ -173,3 +184,4 @@ export const ProjectDetail: FC = () => {
     </div>
   );
 };
+
